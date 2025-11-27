@@ -10,4 +10,25 @@
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
+  <script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ["Inter", "sans-serif"],
+          serif: ["EB Garamond", "serif"],
+        },
+        colors: {
+          brand: "#2F2F2F",
+          brandlight: "#CBD4CE",
+        },
+      },
+    },
+  };
+</script>
+
+<!-- Load fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=EB+Garamond:wght@400;600;700&display=swap" rel="stylesheet">
+
 </html>

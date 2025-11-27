@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 // Layout Components
 import Navbar from "./components/layout/Navbar";
 import MobileBottomNav from "./components/layout/MobileBottomNav";
+import "./index.css";
 
 // Pages
 import LandingPage from "./pages/LandingPage";
