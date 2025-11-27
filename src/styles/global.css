@@ -1,0 +1,19 @@
+/* Custom utility tweaks allowed with CDN */
+body {
+  background-color: #F7F7F3;
+  color: #2F2F2F;
+  font-family: 'Inter', sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Remove scrollbars but keep scroll function */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
