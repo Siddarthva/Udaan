@@ -1,27 +1,36 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import Card from "../components/ui/Card";
-import Button from "../components/ui/Button";
-import Badge from "../components/ui/Badge";
 import ProjectDetailsModal from "../components/models/ProjectDetailsModal";
-import { Flame } from "lucide-react";
 import projectsData from "../data/projects";
 
 export default function ProjectsPage({ user }) {
-  const [domainFilter, setDomainFilter] = useState("All");
-  const [stageFilter, setStageFilter] = useState("All");
   const [selectedProject, setSelectedProject] = useState(null);
 
-  const filteredProjects = useMemo(() => {
-    return projectsData
-      .filter(p =>
-        (domainFilter === "All" || p.domain === domainFilter) &&
-        (stageFilter === "All" || p.stage === stageFilter)
-      )
-      .sort((a, b) => b.trending_score - a.trending_score);
-  }, [domainFilter, stageFilter]);
+  // 🔍 Global search term (project title)
+  const [searchTerm, setSearchTerm] = useState("");
+
+  // 🏷 Domain filter
+  const [domainFilter, setDomainFilter] = useState("All");
+
+  // ⏳ Loader state (fake API call)
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Simulate API delay
+  useEffect(() => {
+    const t = setTimeout(() => setIsLoading(false), 800); // 0.8 sec delay
+    return () => clearTimeout(t);
+  }, []);
+
+  // Filter projects by domain + title (case-insensitive)
+  const filteredProjects = projectsData.filter(
+    (project) =>
+      (domainFilter === "All" || project.domain === domainFilter) &&
+      project.title.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-12 animate-fade-in pb-24">
+    <div className="max-w-7xl mx-auto px-4 py-12 pb-24">
+      {/* Details modal */}
       {selectedProject && (
         <ProjectDetailsModal
           project={selectedProject}
@@ -30,7 +39,8 @@ export default function ProjectsPage({ user }) {
         />
       )}
 
-      <div className="flex justify-between flex-col md:flex-row gap-6 mb-10">
+      {/* Header */}
+      <div className="mb-6 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
         <div>
           <h2 className="font-serif text-4xl font-bold">Discover Innovations</h2>
           <p className="text-gray-500 max-w-lg">
@@ -38,49 +48,75 @@ export default function ProjectsPage({ user }) {
           </p>
         </div>
 
-        <div className="space-y-3 text-right">
-          <div className="bg-white px-3 py-2 rounded-xl border flex gap-2">
-            {["All", "AgriTech", "HealthTech", "CleanTech"].map(cat => (
-              <button
-                key={cat}
-                onClick={() => setDomainFilter(cat)}
-                className={`px-3 py-1 rounded-lg text-sm ${domainFilter === cat
-                  ? "bg-[#2F2F2F] text-white"
-                  : "text-gray-600 hover:bg-gray-100"
-                  }`}
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
+        {/* 🔎 Global search by project title */}
+        <div className="max-w-md w-full">
+          <input
+            type="text"
+            placeholder="Search projects by title…"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full px-3 py-2 rounded-xl border text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#2F2F2F]"
+          />
         </div>
       </div>
 
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {filteredProjects.map((project, idx) => (
-          <Card key={project.id} className="p-0 overflow-hidden group cursor-pointer">
-            {idx === 0 && (
-              <div className="absolute top-4 right-4 bg-orange-500 text-white px-3 py-1 rounded-full text-xs font-bold">
-                <Flame size={12} /> Hot
-              </div>
-            )}
-            <img src={project.image} className="h-48 w-full object-cover" />
-
-            <div className="p-6">
-              <h3 className="font-serif text-lg font-bold">{project.title}</h3>
-              <p className="text-xs text-gray-500 uppercase">{project.domain}</p>
-              <p className="text-gray-600 text-sm mt-2">{project.description}</p>
-
-              <div className="mt-6 flex gap-3">
-                <Button variant="outline" className="flex-1 text-sm" onClick={() => setSelectedProject(project)}>
-                  Details
-                </Button>
-                <Button className="flex-1 text-sm">Invest</Button>
-              </div>
-            </div>
-          </Card>
-        ))}
+      {/* 🏷 Domain filters */}
+      <div className="mb-8">
+        <div className="inline-flex flex-wrap gap-2 bg-white px-3 py-2 rounded-xl border">
+          {["All", "AgriTech", "HealthTech", "CleanTech"].map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setDomainFilter(cat)}
+              className={`px-3 py-1 rounded-lg text-sm ${
+                domainFilter === cat
+                  ? "bg-[#2F2F2F] text-white"
+                  : "text-gray-600 hover:bg-gray-100"
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
       </div>
+
+      {/* ⏳ Loader OR Grid */}
+      {isLoading ? (
+        <div className="flex justify-center items-center py-16">
+          <div className="h-8 w-8 border-4 border-gray-300 border-t-black rounded-full animate-spin" />
+          <span className="ml-3 text-sm text-gray-500">
+            Fetching latest projects…
+          </span>
+        </div>
+      ) : (
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {filteredProjects.map((project) => (
+            <Card key={project.id}>
+              <h3 className="font-serif text-lg font-bold mb-1">
+                {project.title}
+              </h3>
+              <p className="text-xs text-gray-500 uppercase mb-2">
+                {project.domain}
+              </p>
+              <p className="text-gray-600 text-sm mb-4">
+                {project.description}
+              </p>
+
+              <button
+                onClick={() => setSelectedProject(project)}
+                className="px-4 py-2 rounded-xl bg-black text-white text-sm"
+              >
+                View details
+              </button>
+            </Card>
+          ))}
+
+          {filteredProjects.length === 0 && (
+            <p className="text-sm text-gray-500 col-span-full">
+              No projects found for “{searchTerm}”.
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 }
