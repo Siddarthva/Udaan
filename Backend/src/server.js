@@ -4,14 +4,14 @@ import cors from "cors";
 import { connectDB } from "./config/db.js";
 import authRoutes from "./routes/authRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
-
+import postRoutes from "./routes/postRoutes.js";
 dotenv.config();
-
 const app = express();
 
 // Middleware
 app.use(cors({ origin: "http://localhost:5173", credentials: true })); // adjust frontend origin
 app.use(express.json());
+app.use("/api/posts", postRoutes);
 
 // Routes
 app.use("/api/auth", authRoutes);
