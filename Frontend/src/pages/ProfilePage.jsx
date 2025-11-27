@@ -1,42 +1,121 @@
-import React, { useState } from "react";
-import Card from "../components/ui/Card";
-import Button from "../components/ui/Button";
-import EditProfileModal from "../components/models/EditProfileModal";
-import projectsData from "../data/projects";
+import React, { useEffect, useState } from "react";
 
 export default function ProfilePage({ user }) {
-  const [showEdit, setShowEdit] = useState(false);
+  const [profile, setProfile] = useState(user);
+  const [loading, setLoading] = useState(!user);
 
-  if (!user) return <div className="p-12 text-center">Please login</div>;
+  useEffect(() => {
+    if (!user) {
+      const fetchUser = async () => {
+        try {
+          const token = localStorage.getItem("token");
+          if (!token) return;
+
+          const res = await fetch("http://localhost:5000/api/users/me", {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+
+          const data = await res.json();
+          if (data.success) {
+            setProfile(data.user);
+          }
+        } catch (err) {
+          console.log("Profile fetch error:", err);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      fetchUser();
+    }
+  }, [user]);
+
+  if (loading) return <div className="p-12 text-center">Loading profile...</div>;
+
+  if (!profile)
+    return (
+      <div className="p-12 text-center">
+        Unable to load profile. Please login again.
+      </div>
+    );
+
+  const isInnovator = profile.role === "Innovator";
+  const isInvestor = profile.role === "Investor";
+  const isMentor = profile.role === "Mentor";
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8 pb-24">
-      {showEdit && <EditProfileModal user={user} onClose={() => setShowEdit(false)} />}
+    <div className="p-6 max-w-4xl mx-auto bg-white rounded-2xl shadow-lg mt-10 border border-gray-200">
+      <h1 className="text-3xl font-bold mb-2 text-black">{profile.name}</h1>
 
-      <Card className="mb-8">
-        <div className="bg-[#CBD4CE] h-32"></div>
+      <p className="text-gray-600 mb-1">{profile.email}</p>
 
-        <div className="px-8 pb-8">
-          <div className="relative -mt-16 flex justify-between items-end">
-            <div className="h-32 w-32 bg-gray-300 rounded-full flex items-center justify-center text-3xl font-serif">
-              {user.avatar}
-            </div>
-            <Button variant="outline" onClick={() => setShowEdit(true)}>Edit Profile</Button>
-          </div>
+      <span className="inline-block px-4 py-1 mt-2 mb-4 bg-blue-600 text-white rounded-full text-sm font-medium capitalize">
+        {profile.role}
+      </span>
 
-          <h2 className="text-2xl font-bold mt-4">{user.name}</h2>
-          <p className="text-gray-600">{user.handle}</p>
-        </div>
-      </Card>
+      {/* Bio */}
+      {profile.bio && (
+        <p className="text-gray-900 font-medium mb-6 leading-relaxed">
+          {profile.bio}
+        </p>
+      )}
 
-      <h3 className="font-serif font-bold mb-4">Your Projects</h3>
-      <div className="grid md:grid-cols-2 gap-4">
-        {projectsData.filter(p => p.founder === user.name).map(p => (
-          <Card key={p.id} className="p-6">
-            <h4 className="font-bold">{p.title}</h4>
-            <p className="text-sm text-gray-600">{p.description}</p>
-          </Card>
-        ))}
+      <div className="space-y-4 text-gray-700">
+        {/* Innovator UI */}
+        {isInnovator && (
+          <>
+            {profile.domain && (
+              <p>
+                <span className="font-semibold">Domain:</span>{" "}
+                {profile.domain}
+              </p>
+            )}
+            {profile.skills?.length > 0 && (
+              <p>
+                <span className="font-semibold">Skills:</span>{" "}
+                {profile.skills.join(", ")}
+              </p>
+            )}
+          </>
+        )}
+
+        {/* Investor UI */}
+        {isInvestor && (
+          <>
+            {profile.domain && (
+              <p>
+                <span className="font-semibold">Invests In:</span>{" "}
+                {profile.domain}
+              </p>
+            )}
+
+            {profile.budgetRange && (
+              <p>
+                <span className="font-semibold">Investment Range:</span>{" "}
+                {profile.budgetRange}
+              </p>
+            )}
+          </>
+        )}
+
+        {/* Mentor UI */}
+        {isMentor && (
+          <>
+            {profile.domain && (
+              <p>
+                <span className="font-semibold">Expertise:</span>{" "}
+                {profile.domain}
+              </p>
+            )}
+
+            {profile.experience && (
+              <p>
+                <span className="font-semibold">Experience:</span>{" "}
+                {profile.experience} years
+              </p>
+            )}
+          </>
+        )}
       </div>
     </div>
   );

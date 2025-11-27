@@ -1,21 +1,21 @@
 import React from "react";
-import { cn } from "../../utils/cn";
 
-export default function Button({ children, variant = "primary", className = "", onClick, icon: Icon }) {
-  const baseStyle =
-    "px-6 py-2.5 rounded-xl font-medium transition-all duration-300 flex items-center justify-center gap-2 active:scale-95";
-
+const Button = ({ children, variant = "primary", className = "", icon: Icon, ...props }) => {
+  const baseStyles = "inline-flex items-center justify-center rounded-xl font-medium transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:pointer-events-none";
   const variants = {
-    primary: "bg-[#2F2F2F] text-white hover:bg-[#1a1a1a] shadow-md",
-    secondary: "bg-[#CBD4CE] text-[#2F2F2F] hover:bg-[#b8c2bc]",
-    outline: "border border-[#2F2F2F] text-[#2F2F2F] hover:bg-gray-100",
-    ghost: "text-[#555] hover:bg-gray-100/50"
+    primary: "bg-stone-900 text-white hover:bg-stone-800 shadow-lg shadow-stone-900/10",
+    outline: "border-2 border-stone-200 text-stone-700 hover:border-stone-900 hover:text-stone-900 bg-transparent",
+    ghost: "text-stone-600 hover:bg-stone-100",
+    secondary: "bg-stone-100 text-stone-900 hover:bg-stone-200"
   };
+  const sizes = "h-11 px-6 text-sm";
 
   return (
-    <button onClick={onClick} className={cn(baseStyle, variants[variant], className)}>
-      {Icon && <Icon size={18} />}
+    <button className={`${baseStyles} ${variants[variant]} ${sizes} ${className}`} {...props}>
+      {Icon && <Icon size={18} className="mr-2" />}
       {children}
     </button>
   );
-}
+};
+
+export default Button;
