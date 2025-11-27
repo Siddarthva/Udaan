@@ -16,13 +16,15 @@ export default function Navbar({ activePage, setPage, user, setUser }) {
     { id: "projects", label: "Projects" },
     { id: "inbox", label: "Inbox" },
     { id: "profile", label: "Profile" },
+    { id: "trending", label: "Trending" },
   ];
 
   const navigate = (page) => {
-    if (!user && page !== "auth") return setPage("auth");
+    //if (!user && page !== "auth") return setPage("auth");    ****************
     setPage(page);
     setMenuOpen(false);
   };
+  
 
   return (
     <header className="bg-white shadow-md px-6 py-3 flex justify-between items-center fixed w-full top-0 z-50">

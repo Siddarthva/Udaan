@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 
 // Layout Components
 import Navbar from "./components/layout/Navbar";
@@ -11,47 +11,19 @@ import ProjectsPage from "./pages/ProjectsPage";
 import FeedPage from "./pages/FeedPage";
 import TrendingPage from "./pages/FeedPage"; // Temporary alias
 import InboxPage from "./pages/InboxPage";
-import AuthPage from "./pages/AuthPage";
 import Dashboard from "./pages/Dashboard";
 import ProfilePage from "./pages/ProfilePage";
 
-const API_USER = "http://localhost:5000/api/users/me";
-
 export default function App() {
-  const [activePage, setActivePage] = useState("auth");
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [user] = useState({
+    name: "Developer Mode",
+    email: "dev@udaan.com",
+    role: "Innovator",
+  });
 
-  // Load user from backend if token exists
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      setLoading(false);
-      return;
-    }
-
-    fetch(API_USER, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(async (res) => {
-        if (!res.ok) throw new Error("Token expired");
-        const data = await res.json();
-        setUser(data);
-        setActivePage("dashboard");
-      })
-      .catch(() => {
-        localStorage.removeItem("token");
-        setUser(null);
-        setActivePage("auth");
-      })
-      .finally(() => setLoading(false));
-  }, []);
+  const [activePage, setActivePage] = useState("feed");
 
   const renderPage = () => {
-    if (!user && ["dashboard", "profile", "inbox", "projects", "feed", "trending"].includes(activePage)) {
-      return <AuthPage setUser={setUser} setPage={setActivePage} />;
-    }
-
     switch (activePage) {
       case "home":
         return <LandingPage setPage={setActivePage} />;
@@ -60,10 +32,7 @@ export default function App() {
       case "feed":
         return <FeedPage user={user} />;
       case "trending":
-      case "news":
         return <TrendingPage />;
-      case "auth":
-        return <AuthPage setUser={setUser} setPage={setActivePage} />;
       case "profile":
         return <ProfilePage user={user} />;
       case "dashboard":
@@ -71,40 +40,38 @@ export default function App() {
       case "inbox":
         return <InboxPage user={user} />;
       default:
-        return <LandingPage setPage={setActivePage} />;
+        return <FeedPage user={user} />;
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-lg font-semibold">
-        Loading...
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-[#F7F7F3] text-[#2F2F2F] font-sans">
-      
+
+      {/* Sticky Navbar */}
       <Navbar
         activePage={activePage}
         setPage={setActivePage}
         user={user}
-        setUser={setUser}
       />
 
-      <main className="min-h-screen">
-        {renderPage()}
+      {/* Centered container */}
+      <main className="w-full flex justify-center pt-24 pb-28">
+        <div className="w-full max-w-5xl px-4 md:px-8">
+          {renderPage()}
+        </div>
       </main>
 
-      {activePage !== "auth" && (
+      {/* Mobile Navigation */}
+      {activePage !== "home" && (
         <MobileBottomNav activePage={activePage} setPage={setActivePage} />
       )}
 
+      {/* Footer (Desktop Only) */}
       <footer className="hidden md:block bg-white py-12 border-t border-[#D8D8D3] text-center text-gray-400 text-sm">
         <p className="font-serif text-lg text-[#2F2F2F] font-bold mb-4">Udaan</p>
         <p>&copy; 2025 Udaan Innovation Platform. All rights reserved.</p>
       </footer>
+
     </div>
   );
 }
