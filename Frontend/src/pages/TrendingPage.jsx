@@ -1,73 +1,49 @@
-import React, { useState, useMemo } from "react";
+import React from "react";
 import Card from "../components/ui/Card";
-import ProjectDetailsModal from "../components/models/ProjectDetailsModal";
-import projectsData from "../data/projects";
 
-export default function TrendingPage({ user }) {
-  const [selectedProject, setSelectedProject] = useState(null);
-
-  // Sort projects by trending score (highest 1st)
-  const trendingProjects = useMemo(() => {
-    return [...projectsData]
-      .sort((a, b) => b.trending_score - a.trending_score)
-      .slice(0, 6); // Show top 6
-  }, []);
-
+export default function TrendingPage() {
   return (
-    <div className="max-w-7xl mx-auto px-4 py-12 pb-24">
-      {/* Details modal */}
-      {selectedProject && (
-        <ProjectDetailsModal
-          project={selectedProject}
-          onClose={() => setSelectedProject(null)}
-          user={user}
-        />
-      )}
+    <div className="space-y-10">
 
-      {/* Header */}
-      <div className="mb-8">
-        <h2 className="font-serif text-4xl font-bold">Trending Projects</h2>
-        <p className="text-gray-500 max-w-xl">
-          Based on traction, investor interest, platform buzz, and funding progress.
+      {/* Hero */}
+      <section className="bg-white rounded-3xl shadow p-8">
+        <h1 className="text-3xl font-serif font-bold mb-4">Discover Innovation 🚀</h1>
+        <p className="text-gray-600">
+          Explore top projects, rising innovators & trending ideas on Udaan.
         </p>
-      </div>
+      </section>
 
-      {/* Trending Grid */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {trendingProjects.map((project, idx) => (
-          <Card key={project.id}>
-            {/* Highlight #1 */}
-            {idx === 0 && (
-              <div className="mb-2 inline-block bg-orange-500 text-white px-3 py-1 rounded-full text-xs font-bold">
-                🔥 Hot & Rising
-              </div>
-            )}
+      {/* Trending Projects */}
+      <section>
+        <h2 className="text-xl font-semibold mb-3">🔥 Trending Projects</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Card className="p-4">⚙️ AI Drone Delivery System</Card>
+          <Card className="p-4">💊 HealthTech Smart Pill</Card>
+          <Card className="p-4">🌱 Smart Agri IoT Bot</Card>
+          <Card className="p-4">🚗 EV Battery Swap Network</Card>
+        </div>
+      </section>
 
-            <h3 className="font-serif text-lg font-bold mb-1">
-              {project.title}
-            </h3>
-            <p className="text-xs text-gray-500 uppercase mb-2">
-              {project.domain}
-            </p>
+      {/* Top Innovators */}
+      <section>
+        <h2 className="text-xl font-semibold mb-3">🏆 Top Innovators</h2>
+        <div className="flex gap-4 overflow-x-auto">
+          {["Aarav", "Meera", "Rohan", "Zara"].map((name) => (
+            <Card key={name} className="p-4 min-w-[160px] text-center">
+              ⭐ {name}
+            </Card>
+          ))}
+        </div>
+      </section>
 
-            <p className="text-gray-600 text-sm mb-4">
-              {project.description}
-            </p>
+      {/* Latest Updates */}
+      <section>
+        <h2 className="text-xl font-semibold mb-3">📰 Latest Activity</h2>
+        <Card className="p-4 text-gray-600">
+          Coming soon… 🚧 Latest posts & startup updates here
+        </Card>
+      </section>
 
-            {/* Trending score */}
-            <p className="text-xs text-gray-500 mb-4">
-              Trending Score: <span className="font-semibold">{project.trending_score}</span>
-            </p>
-
-            <button
-              onClick={() => setSelectedProject(project)}
-              className="px-4 py-2 rounded-xl bg-black text-white text-sm"
-            >
-              View details
-            </button>
-          </Card>
-        ))}
-      </div>
     </div>
   );
 }

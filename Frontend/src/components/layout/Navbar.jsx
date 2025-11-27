@@ -12,12 +12,14 @@ export default function Navbar({ activePage, setPage, user, setUser }) {
   };
 
   const navItems = [
-    { id: "feed", label: "Feed" },
-    { id: "projects", label: "Projects" },
-    { id: "inbox", label: "Inbox" },
-    { id: "profile", label: "Profile" },
-    { id: "trending", label: "Trending" },
-  ];
+  { id: "trending", label: "Explore" },
+  { id: "feed", label: "My Feed" },
+  { id: "projects", label: "Projects" },
+  { id: "inbox", label: "Inbox" },
+  { id: "profile", label: "Profile" }
+];
+
+  
 
   const navigate = (page) => {
     //if (!user && page !== "auth") return setPage("auth");    ****************
