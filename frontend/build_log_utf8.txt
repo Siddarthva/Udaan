@@ -1,0 +1,21 @@
+[36mvite v7.2.4 [32mbuilding client environment for production...[36m[39m
+transforming...
+Found 1 warning while optimizing generated CSS:
+
+[2m│   }[22m
+[2m│ }[22m
+[2m│[22m @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700;1,900&display=swap');
+[2m┆[22m        [33m[2m^--[22m @import rules must precede all rules aside from @charset and @layer statements[39m
+[2m┆[22m
+[2m│ :root {[22m
+[2m│   --foreground-rgb: 47, 47, 47;[22m
+
+[32m✓[39m 56 modules transformed.
+[31m✗[39m Build failed in 735ms
+[31merror during build:
+[31mCould not resolve "./Navbar" from "src/layouts/MainLayout.jsx"[31m
+file: [36mD:/Projects/udaan/src/layouts/MainLayout.jsx[31m
+    at getRollupError (file:///D:/Projects/udaan/node_modules/rollup/dist/es/shared/parseAst.js:401:41)
+    at error (file:///D:/Projects/udaan/node_modules/rollup/dist/es/shared/parseAst.js:397:42)
+    at ModuleLoader.handleInvalidResolvedId (file:///D:/Projects/udaan/node_modules/rollup/dist/es/shared/node-entry.js:21590:24)
+    at file:///D:/Projects/udaan/node_modules/rollup/dist/es/shared/node-entry.js:21550:26[39m
