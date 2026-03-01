@@ -1,172 +1,282 @@
-import React, { useState, useEffect } from 'react';
-import { Briefcase, Target, Zap, ChevronRight, CheckCircle2, TrendingUp, Users, Clock, Plus, BarChart3, Bell, Loader2 } from 'lucide-react';
-import { Card, Button, EmptyState, Badge } from "../../../components/ui";
-import projectService from "../../../services/projectService";
-import { notificationService } from "../../../services/messageService";
-import { useAuth } from "../../auth/context/AuthContext";
-import { motion, AnimatePresence } from "framer-motion";
+import React, { useState, useEffect } from "react";
+import {
+    Activity,
+    Target,
+    Zap,
+    ChevronRight,
+    TrendingUp,
+    Users,
+    Clock,
+    Plus,
+    BarChart3,
+    Bell,
+    Layers,
+    MessageSquare,
+    Trophy,
+    ArrowUpRight,
+    Briefcase
+} from "lucide-react";
+import { motion } from "framer-motion";
+import { Card, Button, Badge, Skeleton, EmptyState } from "../../../components/ui";
+import { useProjectStore, useIntelligenceStore, useAuthStore } from "../../../store/domainStores";
+import { useUIStore } from "../../../store/uiStore";
+import { AnimatedSection } from "../../../components/animation/MotionSystem";
+import toast from "react-hot-toast";
+
+const NOTIFICATIONS = [
+    { id: 1, type: 'System', title: 'Network Hub Synced', message: 'Nodes active', severity: 'low', timestamp: 'Just now' },
+    { id: 2, type: 'Grant', title: 'AgriTech Tranche A disbursed', message: 'Funds available', severity: 'high', timestamp: '2h ago' }
+];
 
 /**
- * InnovatorDashboard: Workspace tailored for building projects and tracking progress.
- * Now integrated with mock services for real-world simulation.
+ * InnovatorDashboard: Premium workspace for building and scaling projects.
+ * Features: Project progress, Milestone tracking, Funding status, and Collaboration alerts.
  */
-const InnovatorDashboard = () => {
-    const { user } = useAuth();
-    const [projects, setProjects] = useState([]);
-    const [notifications, setNotifications] = useState([]);
-    const [loading, setLoading] = useState(true);
+export default function InnovatorDashboard() {
+    const { user } = useAuthStore();
+    const { projects } = useProjectStore();
+    const { alerts } = useIntelligenceStore();
+    const { openOverlay } = useUIStore();
+    const [isLoading, setIsLoading] = useState(true);
+
+    const handleLaunchVenture = () => {
+        toast.promise(
+            new Promise(res => setTimeout(res, 1200)),
+            {
+                loading: 'Initializing venture node...',
+                success: 'Workspace created! Use the global command bar (Ctrl+K) to add details.',
+                error: 'Initialization failed.'
+            }
+        );
+    };
 
     useEffect(() => {
-        const loadDashboardData = async () => {
-            setLoading(true);
-            try {
-                const [projData, notifData] = await Promise.all([
-                    projectService.fetchAll({ ownerId: user.id }),
-                    notificationService.fetchUserAlerts(user.id)
-                ]);
-                setProjects(projData);
-                setNotifications(notifData);
-            } catch (err) {
-                console.error("[DASHBOARD]: Data sync failed", err);
-            } finally {
-                setLoading(false);
-            }
-        };
-        loadDashboardData();
-    }, [user.id]);
+        const timer = setTimeout(() => setIsLoading(false), 800);
+        return () => clearTimeout(timer);
+    }, []);
 
-    if (loading) {
+    if (isLoading) {
         return (
-            <div className="flex flex-col items-center justify-center min-h-[60vh] text-gray-400 space-y-4">
-                <Loader2 size={32} className="animate-spin opacity-50 text-gray-900" />
-                <p className="text-xs font-black uppercase tracking-[0.2em]">Synchronizing Innovation Core...</p>
+            <div className="p-8 space-y-12 animate-in fade-in duration-500 bg-[#F8F9FA]/50 min-h-screen">
+                <div className="flex justify-between items-end">
+                    <div className="space-y-4">
+                        <Skeleton className="h-4 w-32" />
+                        <Skeleton className="h-12 w-[400px]" />
+                    </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    {[1, 2, 3, 4].map(i => <div key={i} className="h-32 bg-white rounded-3xl" />)}
+                </div>
+                <div className="h-[400px] bg-white rounded-[3rem]" />
             </div>
         );
     }
 
+    // Filter projects owned by current user
+    const myProjects = projects.filter(p => p.founder.includes(user?.name?.split(' ')[0] || "Ananya"));
+
+    // Combine static notifications with dynamic intelligence alerts
+    const activeAlerts = [
+        ...alerts.map(a => ({ ...a, severity: a.severity || 'low' })),
+        ...NOTIFICATIONS
+    ].slice(0, 5);
+
+    // Dynamic stats calculation
+    const totalRaisedVal = myProjects.reduce((acc, p) => acc + (p.stage === 'Funded' ? 25 : 0), 85); // Hacky mock logic for demo
+
     return (
-        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
-            {/* Header ... same as before but dynamic ... */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-gray-100">
-                <div className="space-y-1">
+        <div className="p-4 md:p-8 space-y-12 max-w-[1600px] mx-auto min-h-screen">
+            {/* Header */}
+            <AnimatedSection direction="down" className="flex flex-col md:flex-row md:items-end justify-between gap-8 pb-10 border-b border-gray-200/50">
+                <div className="space-y-3">
                     <div className="flex items-center gap-2 mb-2">
-                        <Badge variant="outline" className="text-[10px] font-black uppercase tracking-widest bg-blue-50 text-blue-600 border-blue-100 shadow-sm">Innovator Workspace</Badge>
+                        <Badge variant="outline" className="text-[10px] font-black uppercase tracking-widest bg-blue-50 text-blue-600 border-blue-100 px-3 py-1 shadow-sm">Innovation Core active</Badge>
                         <span className="h-1 w-1 bg-gray-300 rounded-full"></span>
-                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-1.5"><Clock size={12} /> Last active: just now</span>
+                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-1.5"><Clock size={12} /> Synced: dev-mode-alpha</span>
                     </div>
-                    <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-gray-900 leading-none">
-                        Welcome back, {user?.name?.split(' ')[0] || 'Innovator'}
+                    <h1 className="text-5xl font-black tracking-tight text-gray-900 leading-none">
+                        Pulse, <span className="text-gray-400">{user?.name?.split(' ')[0] || 'Innovator'}.</span>
                     </h1>
-                    <p className="text-sm text-gray-500 font-medium tracking-tight">Access your Innovation Core and scale your vision.</p>
+                    <p className="text-sm text-gray-500 font-medium max-w-xl leading-relaxed">
+                        Track your project velocity, manage milestones, and coordinate with your mentor network.
+                    </p>
                 </div>
-                <div className="flex items-center gap-3">
-                    <Button variant="primary" size="lg" className="h-12 bg-gray-900 shadow-xl shadow-black/10 text-white border-none py-2 px-6">
-                        <Plus size={18} className="mr-2" /> Launch New Project
+                <div className="flex gap-4">
+                    <Button
+                        onClick={() => openOverlay('VENTURE_WIZARD')}
+                        className="h-14 px-8 bg-gray-900 text-white rounded-2xl flex items-center gap-3 font-black text-xs uppercase shadow-xl hover:shadow-gray-200/50 border-none transition-all active:scale-95"
+                    >
+                        <Plus size={18} /> Launch New Venture
                     </Button>
                 </div>
+            </AnimatedSection>
+
+            {/* Quick Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <StatCard icon={TrendingUp} label="Total Raised" value={`₹${totalRaisedVal.toFixed(1)}L`} delta="+₹10L" color="emerald" />
+                <StatCard icon={Layers} label="Active Nodes" value={myProjects.length.toString()} delta="1 Pending" color="blue" />
+                <StatCard icon={Target} label="Milestones" value="4/12" delta="33%" color="amber" />
+                <StatCard icon={Users} label="Collaborators" value="12" delta="+2" color="indigo" />
             </div>
 
-            {/* Core Stats ... dynamic values from projects ... */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-                {[
-                    { label: "Total Raised", value: `₹${projects.reduce((acc, p) => acc + p.raised, 0).toLocaleString()}`, icon: TrendingUp, color: "emerald", trend: "Active" },
-                    { label: "Active Nodes", value: projects.length.toString(), icon: Briefcase, color: "blue", trend: "Synced" },
-                    { label: "Alerts", value: notifications.filter(n => !n.read).length.toString(), icon: Bell, color: "purple", trend: "Live" },
-                    { label: "Milestones", value: "0", icon: Target, color: "orange", trend: "0%" }
-                ].map((stat, i) => {
-                    const colorClasses = {
-                        emerald: "bg-emerald-50 text-emerald-600",
-                        blue: "bg-blue-50 text-blue-600",
-                        purple: "bg-purple-50 text-purple-600",
-                        orange: "bg-orange-50 text-orange-600"
-                    }[stat.color] || "bg-gray-50 text-gray-600";
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-12">
+                {/* Project Pipeline */}
+                <div className="xl:col-span-2 space-y-8">
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-gray-900">Project Performance</h2>
+                        <Button variant="ghost" className="text-[10px] font-black uppercase tracking-widest text-gray-400">View Lifecycle</Button>
+                    </div>
 
-                    return (
-                        <Card key={i} className="p-5 border-none shadow-sm flex flex-col justify-between group hover:shadow-md transition-shadow">
-                            <div className="flex justify-between items-start mb-4">
-                                <div className={`p-2.5 rounded-xl ${colorClasses}`}>
-                                    <stat.icon size={20} />
-                                </div>
-                                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{stat.trend}</span>
-                            </div>
-                            <div>
-                                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{stat.label}</p>
-                                <h3 className="text-2xl font-bold text-gray-900 tabular-nums">{stat.value}</h3>
-                            </div>
-                        </Card>
-                    );
-                })}
-            </div>
+                    <div className="space-y-6">
+                        {myProjects.length > 0 ? (
+                            myProjects.map(project => (
+                                <ProjectRow key={project.id} project={project} />
+                            ))
+                        ) : (
+                            <EmptyState
+                                icon={Briefcase}
+                                title="No Ventures Active"
+                                description="Start your journey by documenting your innovation node."
+                            />
+                        )}
+                    </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                {/* Main Content Area: Project Tracking */}
-                <div className="lg:col-span-8 space-y-8">
-                    <Card className="p-0 border-none shadow-sm overflow-hidden min-h-[400px] flex flex-col">
-                        <div className="p-6 border-b border-gray-50 flex items-center justify-between">
-                            <h3 className="text-lg font-bold text-gray-900 flex items-center gap-3">
-                                <BarChart3 size={20} className="text-gray-400" /> My Projects Repository
-                            </h3>
-                            <Button variant="ghost" size="sm" className="text-xs font-bold uppercase tracking-widest text-gray-400 hover:text-black">All Assets</Button>
-                        </div>
-                        <div className="flex-1 p-6">
-                            {projects.length > 0 ? (
-                                <div className="space-y-4">
-                                    {projects.map(p => (
-                                        <div key={p.id} className="p-5 rounded-2xl bg-gray-50/80 border border-gray-100 hover:border-gray-300 transition-all flex items-center gap-6 group">
-                                            <div className="h-12 w-12 bg-white rounded-xl shadow-sm flex items-center justify-center text-gray-900 font-black border border-gray-100 group-hover:scale-105 transition-transform">
-                                                {p.title[0]}
-                                            </div>
-                                            <div className="flex-1">
-                                                <h4 className="font-bold text-gray-900 mb-1">{p.title}</h4>
-                                                <div className="flex items-center gap-3">
-                                                    <Badge variant="outline" className="text-[9px] font-black uppercase tracking-[0.15em] border-gray-200">{p.status}</Badge>
-                                                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Raised ₹{p.raised.toLocaleString()}</span>
-                                                </div>
-                                            </div>
-                                            <Button variant="ghost" size="sm" className="h-10 w-10 p-0 text-gray-400 hover:text-black transition-colors">
-                                                <ChevronRight size={18} />
-                                            </Button>
+                    {/* Contribution Requests */}
+                    <div className="space-y-6 pt-10">
+                        <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-gray-900">Contribution Requests</h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {[1].map(req => (
+                                <Card key={req} className="p-8 border-none bg-white rounded-[2.5rem] shadow-sm space-y-6 border border-gray-50">
+                                    <div className="flex items-center gap-4">
+                                        <div className="h-10 w-10 bg-gray-100 rounded-full" />
+                                        <div className="flex-1">
+                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Siddharth J.</p>
+                                            <h4 className="text-sm font-bold text-gray-900">Lead Developer Request</h4>
                                         </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="flex flex-col items-center justify-center h-64 text-center">
-                                    <div className="h-16 w-16 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-200 mb-6">
-                                        <Plus size={32} />
+                                        <Badge className="bg-emerald-50 text-emerald-600 border-none font-bold text-[8px] uppercase">New</Badge>
                                     </div>
-                                    <h3 className="text-xl font-bold text-gray-900 mb-2">No active projects</h3>
-                                    <p className="text-sm text-gray-500 max-w-xs leading-relaxed">Launching your first project takes less than 2 minutes. Start building today.</p>
-                                </div>
-                            )}
+                                    <p className="text-xs text-gray-500 leading-relaxed font-medium">Interested in joining AgriDrone AI to handle the edge-computing layer sync.</p>
+                                    <div className="flex gap-3 pt-2">
+                                        <Button className="flex-1 h-10 bg-gray-900 text-white rounded-xl text-[9px] font-black uppercase tracking-widest">Review</Button>
+                                        <Button variant="ghost" className="flex-1 h-10 bg-gray-50 text-gray-400 rounded-xl text-[9px] font-black uppercase tracking-widest">Decline</Button>
+                                    </div>
+                                </Card>
+                            ))}
                         </div>
-                    </Card>
+                    </div>
                 </div>
 
-                {/* Sidebar area remains similar, but linked to notifs */}
-                <div className="lg:col-span-4 space-y-6">
-                    {/* ... other Widgets ... */}
-                    <Card className="p-6 border-none shadow-sm bg-gray-900 text-white overflow-hidden relative group">
-                        <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-110 transition-transform">
-                            <Bell size={120} />
+                {/* Real-time Alerts Sidebar */}
+                <div className="space-y-10">
+                    <section className="space-y-6">
+                        <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-gray-900">Ecosystem Alerts</h2>
+                        <div className="space-y-4">
+                            {NOTIFICATIONS.slice(0, 3).map(notif => (
+                                <AlertCard key={notif.id} notif={notif} />
+                            ))}
                         </div>
-                        <h3 className="text-base font-bold mb-4 relative z-10">Notifications</h3>
-                        <div className="space-y-3 relative z-10">
-                            {notifications.length > 0 ? (
-                                notifications.slice(0, 3).map(n => (
-                                    <div key={n.id} className={`p-4 rounded-xl backdrop-blur-md border ${n.read ? 'bg-white/5 border-white/5' : 'bg-white/10 border-white/10'}`}>
-                                        <p className="text-xs font-bold mb-1 opacity-60 uppercase tracking-widest">{n.title}</p>
-                                        <p className="text-sm font-medium leading-relaxed">{n.message}</p>
-                                    </div>
-                                ))
-                            ) : (
-                                <p className="text-xs text-white/40 font-bold uppercase tracking-widest">No Alerts</p>
-                            )}
+                    </section>
+
+                    <Card className="p-10 border-none bg-indigo-900 text-white rounded-[3.5rem] shadow-2xl space-y-8 relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-bl-full -mr-12 -mt-12 group-hover:scale-110 transition-transform" />
+                        <MessageSquare size={32} className="text-indigo-400" />
+                        <div className="space-y-2">
+                            <h4 className="text-xl font-bold italic tracking-tight">Mentor Intelligence</h4>
+                            <p className="text-indigo-200 text-sm font-medium leading-relaxed">Dr. Vikram Seth left a review on your 'AgriDrone AI' tech-node. 14 critical insights detected.</p>
                         </div>
+                        <Button className="w-full h-14 bg-white text-indigo-950 font-black text-[10px] uppercase tracking-widest rounded-2xl border-none shadow-xl hover:shadow-indigo-950/50">
+                            Open Workspace
+                        </Button>
                     </Card>
                 </div>
             </div>
         </div>
     );
-};
+}
 
-export default InnovatorDashboard;
+function StatCard({ icon: Icon, label, value, delta, color }) {
+    const colors = {
+        blue: "text-blue-600 bg-blue-50/50",
+        emerald: "text-emerald-600 bg-emerald-50/50",
+        amber: "text-amber-600 bg-amber-50/50",
+        indigo: "text-indigo-600 bg-indigo-50/50",
+        purple: "text-purple-600 bg-purple-50/50"
+    };
+
+    return (
+        <Card className="p-6 border-none bg-white rounded-3xl shadow-sm hover:shadow-xl transition-all group overflow-hidden">
+            <div className="space-y-4">
+                <div className="flex justify-between items-start">
+                    <div className={`h-10 w-10 rounded-2xl flex items-center justify-center ${colors[color]} group-hover:scale-110 transition-transform`}>
+                        <Icon size={18} />
+                    </div>
+                    <Badge className="bg-gray-50 text-gray-400 border-none font-black text-[9px] uppercase">{delta}</Badge>
+                </div>
+                <div>
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{label}</p>
+                    <p className="text-2xl font-black text-gray-900 tracking-tight">{value}</p>
+                </div>
+            </div>
+        </Card>
+    );
+}
+
+function ProjectRow({ project }) {
+    return (
+        <Card className="p-8 border-none bg-white rounded-[2.5rem] shadow-sm hover:shadow-2xl transition-all duration-500 flex items-center gap-8 group">
+            <div className="h-16 w-16 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-900 border border-gray-100 group-hover:bg-gray-900 group-hover:text-white transition-all transform group-hover:rotate-6">
+                <BarChart3 size={24} />
+            </div>
+            <div className="flex-1 space-y-3">
+                <div className="flex items-center gap-3">
+                    <h3 className="text-xl font-bold text-gray-900 group-hover:text-black">{project.name}</h3>
+                    <Badge className="bg-gray-100 text-gray-400 border-none font-black text-[8px] uppercase tracking-[0.2em]">{project.stage}</Badge>
+                </div>
+                <div className="flex items-center gap-10">
+                    <div className="flex-1 h-1.5 bg-gray-50 rounded-full overflow-hidden">
+                        <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${project.progress}%` }}
+                            className="h-full bg-gray-900 rounded-full"
+                        />
+                    </div>
+                    <span className="text-[10px] font-black text-gray-900 tabular-nums">{project.progress}% READY</span>
+                </div>
+            </div>
+            <div className="flex items-center gap-4">
+                <Button
+                    onClick={() => openOverlay('DISCOVERY_WIZARD', project)}
+                    variant="ghost"
+                    className="h-12 px-6 rounded-2xl text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-gray-900 border border-gray-100 hover:border-gray-900 flex items-center gap-2"
+                >
+                    <Target size={14} /> Discovery
+                </Button>
+                <Button
+                    onClick={() => openOverlay('DOSSIER_VIEWER', project)}
+                    className="h-12 px-8 bg-gray-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest border-none shadow-xl flex items-center gap-2 group/btn"
+                >
+                    Manage <ArrowUpRight size={14} className="group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5 transition-transform" />
+                </Button>
+            </div>
+        </Card>
+    );
+}
+
+function AlertCard({ notif }) {
+    const severities = {
+        high: "bg-rose-50 text-rose-600 ring-rose-100/50",
+        medium: "bg-amber-50 text-amber-600 ring-amber-100/50",
+        low: "bg-blue-50 text-blue-600 ring-blue-100/50"
+    };
+
+    return (
+        <div className={`p-5 rounded-[2rem] ring-1 shadow-sm flex gap-4 ${severities[notif.severity]}`}>
+            <div className="h-2 w-2 rounded-full bg-current mt-1.5 shrink-0" />
+            <div className="space-y-1 flex-1">
+                <p className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-1">{notif.type}</p>
+                <h4 className="text-xs font-bold leading-tight">{notif.title}</h4>
+                <p className="text-[10px] font-medium opacity-80 leading-relaxed font-mono">{notif.timestamp}</p>
+            </div>
+        </div>
+    );
+}

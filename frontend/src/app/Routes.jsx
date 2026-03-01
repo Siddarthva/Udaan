@@ -95,12 +95,20 @@ export const AppRoutes = () => {
                             <Route path="/sponsor/portfolio" element={<PortfolioImpactPage />} />
                             <Route path="/sponsor/reports" element={<ReportsPage />} />
                         </Route>
-                    </Route>
-                </Route>
 
-                {/* Fallback */}
-                <Route path="/404" element={<NotFoundPage />} />
-                <Route path="*" element={<Navigate to="/404" replace />} />
+                        {/* Admin-specific Routes */}
+                        <Route element={<RoleBasedGuard allowedRoles={['Admin']} />}>
+                            <Route path="/admin/metrics" element={<div className="p-8">Ecosystem Analytics</div>} />
+                            <Route path="/admin/compliance" element={<div className="p-8">Compliance Matrix</div>} />
+                            <Route path="/admin/users" element={<div className="p-8">User Directory</div>} />
+                            <Route path="/admin/audit" element={<div className="p-8">System Audit Logs</div>} />
+                        </Route>
+                    </Route>
+
+                    {/* Fallback */}
+                    <Route path="/404" element={<NotFoundPage />} />
+                    <Route path="*" element={<Navigate to="/404" replace />} />
+                </Route>
             </Routes>
         </Suspense>
     );

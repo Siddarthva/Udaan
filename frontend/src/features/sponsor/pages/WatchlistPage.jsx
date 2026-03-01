@@ -31,6 +31,7 @@ import { Card, Button, Badge, InputField, Skeleton, EmptyState } from "../../../
 import { WATCHLIST } from "../../../data/watchlist";
 import { SPONSOR_STATS } from "../../../data/sponsorProjects";
 import { AnimatedSection, StaggerContainer } from "../../../components/animation/MotionSystem";
+import DealWorkflow from "../components/DealWorkflow";
 import toast from "react-hot-toast";
 
 /**
@@ -40,6 +41,8 @@ export default function WatchlistPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
     const [watchlistItems, setWatchlistItems] = useState(WATCHLIST);
+    const [isDealWorkflowOpen, setIsDealWorkflowOpen] = useState(false);
+    const [selectedProject, setSelectedProject] = useState(null);
 
     useEffect(() => {
         const timer = setTimeout(() => setIsLoading(false), 800);
@@ -132,8 +135,8 @@ export default function WatchlistPage() {
                                 item={item}
                                 onRemove={() => removeFromWatchlist(item.id)}
                                 onMove={() => {
-                                    toast.success(`${item.projectName} accelerated to pipeline!`);
-                                    removeFromWatchlist(item.id);
+                                    setSelectedProject({ ...item, name: item.projectName }); // Mapping name
+                                    setIsDealWorkflowOpen(true);
                                 }}
                             />
                         ))}
@@ -155,6 +158,20 @@ export default function WatchlistPage() {
                     />
                 )}
             </StaggerContainer>
+
+            {/* Deal Execution Workflow */}
+            <AnimatePresence>
+                {isDealWorkflowOpen && selectedProject && (
+                    <DealWorkflow
+                        project={selectedProject}
+                        isOpen={isDealWorkflowOpen}
+                        onClose={() => {
+                            setIsDealWorkflowOpen(false);
+                            // Optionally remove from watchlist after successful deal
+                        }}
+                    />
+                )}
+            </AnimatePresence>
 
             {/* Watchlist Analysis Summary */}
             <div className="pt-10">

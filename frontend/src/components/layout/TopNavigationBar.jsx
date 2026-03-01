@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Search, Bell, Menu, User, LogOut, Settings, HelpCircle, LayoutGrid, CheckSquare, Plus } from "lucide-react";
-import { useAuth } from "../../features/auth/context/AuthContext";
+import { useAuthStore } from "../../store/domainStores";
 import { useUIStore } from "../../store/uiStore";
 import { RoleBadge } from "../role/RoleBadge";
 import { InputField } from "../ui";
@@ -13,8 +13,8 @@ import { motion, AnimatePresence } from "framer-motion";
  * Features: Dashboard search, Role display, Notifications, User menu.
  */
 export const TopNavigationBar = () => {
-    const { user, logout } = useAuth();
-    const { toggleSidebar } = useUIStore();
+    const { user, logout } = useAuthStore();
+    const { toggleSidebar, openOverlay } = useUIStore();
     const [scrolled, setScrolled] = useState(false);
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
@@ -64,12 +64,18 @@ export const TopNavigationBar = () => {
 
                 <div className="h-5 w-px bg-gray-200 hidden md:block"></div>
 
-                <button className="p-2 text-gray-500 hover:bg-gray-200/50 rounded-lg transition-all relative group active:scale-95">
+                <button
+                    onClick={() => openOverlay('AUDIT_DRAWER')}
+                    className="p-2 text-gray-500 hover:bg-gray-200/50 rounded-lg transition-all relative group active:scale-95"
+                >
                     <Bell size={20} />
                     <span className="absolute top-2 right-2 h-2 w-2 bg-red-500 rounded-full border-2 border-white ring-2 ring-red-500/10 scale-100 group-hover:scale-125 transition-transform duration-200"></span>
                 </button>
 
-                <button className="hidden sm:inline-flex p-2 text-gray-500 hover:bg-gray-200/50 rounded-lg transition-all active:scale-95">
+                <button
+                    onClick={() => openOverlay('DOSSIER_VIEWER', { title: 'Ecosystem Intelligence & Support', status: 'Active', findings: 'Udaan Protocol v1.0.4 is fully operational. Secure encryption layer active. 24/7 institutional support available via the global command node.' })}
+                    className="hidden sm:inline-flex p-2 text-gray-500 hover:bg-gray-200/50 rounded-lg transition-all active:scale-95"
+                >
                     <HelpCircle size={20} />
                 </button>
 

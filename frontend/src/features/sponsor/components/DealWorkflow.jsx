@@ -22,16 +22,29 @@ import {
     Activity,
     Smartphone,
     Search,
-    Download
+    Download,
+    Eye,
+    Users2,
+    Briefcase,
+    FileSearch,
+    Terminal,
+    Globe2
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, Button, Badge, InputField } from "../../../components/ui";
 import toast from "react-hot-toast";
 
+import { useFundingStore, useProjectStore, useIntelligenceStore } from "../../../store/domainStores";
+import { LIFECYCLES } from "../../../config/platform";
+
 /**
  * DealWorkflow: A multi-step stepper for institutional investment management.
  */
 export default function DealWorkflow({ project, isOpen, onClose }) {
+    const { initiateDeal } = useFundingStore();
+    const { transitionStage } = useProjectStore();
+    const { pushAlert } = useIntelligenceStore();
+
     const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(false);
     const [dealConfig, setDealConfig] = useState({
@@ -65,13 +78,31 @@ export default function DealWorkflow({ project, isOpen, onClose }) {
     const handleFinalize = () => {
         setLoading(true);
         setTimeout(() => {
+            setLoading(true);
+
+            // 💰 1. Pipeline Execution (Funding Domain)
+            initiateDeal({
+                ...dealConfig,
+                projectId: project.id,
+                projectName: project.name,
+                assessment,
+                timestamp: new Date().toISOString()
+            });
+
+            // 🚀 2. Project Lifecycle Transition (Projects Domain)
+            transitionStage(project.id, LIFECYCLES.PROJECT.FUNDED);
+
+            // 📡 3. Strategic Alert Generation (Intelligence Domain)
+            pushAlert({
+                type: 'DEAL_EXECUTED',
+                title: 'Capital Deployment Node',
+                message: `Institutional funding wave for ${project.name} successfully authorized at ${dealConfig.amount}.`,
+                severity: 'critical'
+            });
+
             setLoading(false);
             setStep(7); // Success Step
-            toast.success("Deal Finalized Successfully!");
-            // Persist to local storage (simulated)
-            const deals = JSON.parse(localStorage.getItem('sponsor_deals') || '[]');
-            deals.push({ ...dealConfig, id: `deal_${Date.now()}`, project: project.name, date: new Date().toISOString() });
-            localStorage.setItem('sponsor_deals', JSON.stringify(deals));
+            toast.success("Deal Stream Finalized & Synchronized!");
         }, 3000);
     };
 
@@ -195,23 +226,47 @@ const Step1Snapshot = ({ project }) => (
                         ))}
                     </div>
                 </div>
+
+                <div className="space-y-4">
+                    <h4 className="text-xs font-black uppercase tracking-widest text-gray-900 flex items-center justify-between">
+                        VIRTUAL DATA ROOM (VDR)
+                        <Badge className="bg-emerald-50 text-emerald-600 border-none px-2 py-0 text-[8px]">92 ENGAGEMENT SCORE</Badge>
+                    </h4>
+                    <div className="grid grid-cols-1 gap-3">
+                        {[
+                            { name: "Execution Roadmap", views: 42, last: "2h ago" },
+                            { name: "Full Cap Table", views: 12, last: "4h ago" },
+                            { name: "IP Audit 2025", views: 5, last: "1d ago" }
+                        ].map(doc => (
+                            <div key={doc.name} className="flex items-center justify-between p-4 bg-white border border-gray-100 rounded-2xl hover:border-gray-900 transition-all group">
+                                <div className="flex items-center gap-3">
+                                    <div className="h-8 w-8 bg-gray-50 rounded-lg flex items-center justify-center text-gray-400 group-hover:bg-gray-900 group-hover:text-white transition-all">
+                                        <FileSearch size={14} />
+                                    </div>
+                                    <span className="text-xs font-bold text-gray-700">{doc.name}</span>
+                                </div>
+                                <div className="flex items-center gap-4 text-[9px] font-black text-gray-400 uppercase tracking-widest">
+                                    <span className="flex items-center gap-1"><Eye size={12} /> {doc.views}</span>
+                                    <span>Sync {doc.last}</span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
             </div>
 
             <div className="space-y-6">
                 <Card className="p-8 border-none bg-gray-900 text-white rounded-[2rem] shadow-2xl relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-6 opacity-20"><Info size={40} /></div>
+                    <div className="absolute top-0 right-0 p-6 opacity-20"><Users2 size={40} /></div>
                     <div className="space-y-6 relative">
                         <div>
-                            <p className="text-[9px] font-black uppercase tracking-widest text-emerald-400 mb-1">Pre-Check Insight</p>
-                            <h4 className="text-lg font-bold">Due Diligence Ready</h4>
+                            <p className="text-[9px] font-black uppercase tracking-widest text-emerald-400 mb-1">Partner Pulse</p>
+                            <h4 className="text-lg font-bold">Collaborative Signal</h4>
                         </div>
-                        <ul className="space-y-3">
-                            {['Conflict-of-interest check passed', 'Primary KYC verified', 'Institutional node approved'].map((line, i) => (
-                                <li key={i} className="flex items-center gap-3 text-[11px] font-medium text-gray-400">
-                                    <CheckCircle2 size={14} className="text-emerald-500" /> {line}
-                                </li>
-                            ))}
-                        </ul>
+                        <div className="p-4 bg-white/5 rounded-xl border border-white/10 italic text-[11px] text-gray-300">
+                            "Team has high technical velocity. VDR engagement from top-tier analysts is peak."
+                            <p className="not-italic font-black text-[9px] text-emerald-400 mt-2">— Sarah Chen, Managing Partner</p>
+                        </div>
                     </div>
                 </Card>
             </div>
@@ -260,6 +315,23 @@ const Step2DueDiligence = ({ assessment, setAssessment }) => {
                     </div>
                 ))}
             </div>
+
+            <div className="p-10 bg-gray-900 rounded-[2.5rem] text-white space-y-6">
+                <div className="flex items-center gap-4">
+                    <Briefcase size={24} className="text-emerald-400" />
+                    <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Stakeholder Comments</p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="p-6 bg-white/5 rounded-2xl border border-white/10 space-y-3">
+                        <p className="text-sm font-medium text-gray-200 leading-relaxed">"The team's execution capabilities are exceptional, especially given the market constraints. Strong leadership."</p>
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">— Alex Johnson, Lead Analyst</p>
+                    </div>
+                    <div className="p-6 bg-white/5 rounded-2xl border border-white/10 space-y-3">
+                        <p className="text-sm font-medium text-gray-200 leading-relaxed">"Viability looks promising, but regulatory shifts in Q3 could pose a moderate risk. Needs close monitoring."</p>
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">— Dr. Emily White, Risk Officer</p>
+                    </div>
+                </div>
+            </div>
         </motion.div>
     );
 };
@@ -301,18 +373,29 @@ const Step3DealStructure = ({ config, setConfig }) => {
 
             <div className="p-10 bg-gray-900 rounded-[2.5rem] text-white grid grid-cols-1 md:grid-cols-2 gap-10">
                 <div className="space-y-6">
-                    <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Configuration Ledger</p>
+                    <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Cap Table Modeling (Pre-Post Simulation)</p>
                     <div className="space-y-4">
                         <InputField
-                            label="OBLIGATION AMOUNT (INR)"
+                            label="INSTITUTIONAL COMMITMENT (INR)"
                             value={config.amount}
                             onChange={(e) => setConfig({ ...config, amount: e.target.value })}
                             className="bg-transparent border-gray-700 text-white placeholder-gray-500"
                         />
                         {config.model === 'equity' && (
-                            <div className="flex gap-4">
-                                <InputField label="EQUITY %" placeholder="e.g. 5" className="bg-transparent border-gray-700 text-white" />
-                                <InputField label="VALUATION" placeholder="Pre-money" className="bg-transparent border-gray-700 text-white" />
+                            <div className="space-y-4">
+                                <div className="flex gap-4">
+                                    <InputField label="DESIRED OWNERSHIP %" placeholder="e.g. 5" className="bg-transparent border-gray-700 text-white" />
+                                    <InputField label="PRE-MONEY VALUATION" placeholder="e.g. 50 Cr" className="bg-transparent border-gray-700 text-white" />
+                                </div>
+                                <div className="p-4 bg-white/5 rounded-2xl border border-white/10">
+                                    <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest">
+                                        <span className="text-gray-400">Dilution Impact</span>
+                                        <span className="text-emerald-400">0.42% Total</span>
+                                    </div>
+                                    <div className="mt-2 h-1 w-full bg-white/10 rounded-full overflow-hidden">
+                                        <div className="h-full bg-emerald-500 w-[12%]" />
+                                    </div>
+                                </div>
                             </div>
                         )}
                         {config.model === 'revenue_share' && (
@@ -323,11 +406,21 @@ const Step3DealStructure = ({ config, setConfig }) => {
                         )}
                     </div>
                 </div>
-                <div className="flex items-center justify-center p-8 border border-white/10 rounded-[2rem] bg-white/5">
+                <div className="flex flex-col items-center justify-center p-8 border border-white/10 rounded-[2rem] bg-white/5 space-y-6">
                     <div className="text-center space-y-2">
-                        <TrendingUp className="mx-auto text-emerald-400" size={32} />
-                        <p className="text-xl font-bold">Estimated ROI Impact: High</p>
-                        <p className="text-[10px] font-black text-white/50 uppercase tracking-widest">PROJECTED SUSTAINABLE GROWTH: 24% PA</p>
+                        <Terminal className="mx-auto text-emerald-400" size={32} />
+                        <p className="text-xl font-bold italic uppercase tracking-tight">Syndication Active</p>
+                        <p className="text-[10px] font-black text-white/50 uppercase tracking-widest">SYNCED TO HUBSPOT & AFFINITY CRM</p>
+                    </div>
+                    <div className="w-full space-y-3">
+                        <div className="flex justify-between text-[9px] font-black uppercase text-gray-400">
+                            <span>IRR PROJECTION</span>
+                            <span className="text-white">28.4%</span>
+                        </div>
+                        <div className="flex justify-between text-[9px] font-black uppercase text-gray-400">
+                            <span>MOIC ESTIMATE</span>
+                            <span className="text-white">3.2x</span>
+                        </div>
                     </div>
                 </div>
             </div>

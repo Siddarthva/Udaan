@@ -5,8 +5,10 @@ import Button from "../../../components/ui/Button";
 import { Flame, Search, Filter, ArrowUpRight, Grid3X3, List } from "lucide-react";
 import projectsData from "../../../data/projects";
 import { AnimatedSection, StaggerContainer } from "../../../components/animation/MotionSystem";
+import { useUIStore } from "../../../store/uiStore";
 
 export default function ProjectsPage() {
+    const { openOverlay } = useUIStore();
     const [domainFilter, setDomainFilter] = useState("All");
     const [searchQuery, setSearchQuery] = useState("");
 
@@ -106,9 +108,12 @@ export default function ProjectsPage() {
                                                 <p className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-1">{project.stage}</p>
                                                 <h3 className="font-serif text-2xl font-bold tracking-tight">{project.title}</h3>
                                             </div>
-                                            <div className="h-12 w-12 bg-white rounded-2xl flex items-center justify-center text-black shadow-2xl opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-500">
+                                            <button
+                                                onClick={() => openOverlay('DOSSIER_VIEWER', project)}
+                                                className="h-12 w-12 bg-white rounded-2xl flex items-center justify-center text-black shadow-2xl opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-500 hover:bg-gray-900 hover:text-white"
+                                            >
                                                 <ArrowUpRight size={20} />
-                                            </div>
+                                            </button>
                                         </div>
                                     </div>
 
@@ -118,10 +123,16 @@ export default function ProjectsPage() {
                                         </p>
 
                                         <div className="flex gap-4">
-                                            <Button variant="white" className="flex-1 h-14 rounded-2xl text-[10px] font-black uppercase tracking-widest">
+                                            <Button
+                                                onClick={() => openOverlay('DOSSIER_VIEWER', { ...project, title: `${project.title} - Blueprint & Roadmap` })}
+                                                variant="white" className="flex-1 h-14 rounded-2xl text-[10px] font-black uppercase tracking-widest border-gray-100"
+                                            >
                                                 Blueprint
                                             </Button>
-                                            <Button className="flex-1 h-14 rounded-2xl text-[10px] font-black uppercase tracking-widest bg-[#2F2F2F]">
+                                            <Button
+                                                onClick={() => openOverlay('DEAL_WIZARD', project)}
+                                                className="flex-1 h-14 rounded-2xl text-[10px] font-black uppercase tracking-widest bg-gray-900 text-white border-none shadow-xl active:scale-95 transition-all"
+                                            >
                                                 Invest
                                             </Button>
                                         </div>

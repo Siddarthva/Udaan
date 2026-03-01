@@ -1,9 +1,11 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { RoleSidebar } from "../role/RoleSidebar";
 import { TopNavigationBar } from "./TopNavigationBar";
+import { CommandBar } from "./CommandBar";
 import { useUIStore } from "../../store/uiStore";
 import { motion, AnimatePresence } from "framer-motion";
 import { Outlet } from "react-router-dom";
+import GlobalOverlayManager from "../overlays/GlobalOverlayManager";
 
 /**
  * AppShell: The persistent SaaS layout for authenticated users.
@@ -11,6 +13,18 @@ import { Outlet } from "react-router-dom";
  */
 export const AppShell = () => {
     const { isSidebarOpen } = useUIStore();
+    const [isCommandBarOpen, setIsCommandBarOpen] = useState(false);
+
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+                e.preventDefault();
+                setIsCommandBarOpen((prev) => !prev);
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, []);
 
     // Sidebar width logic
     const sidebarWidth = isSidebarOpen ? "w-[260px]" : "w-[72px]";
@@ -18,6 +32,8 @@ export const AppShell = () => {
 
     return (
         <div className="min-h-screen bg-[#F8F9FA] text-[#1A1F23] flex overflow-x-hidden">
+            <CommandBar isOpen={isCommandBarOpen} onClose={() => setIsCommandBarOpen(false)} />
+            <GlobalOverlayManager />
             {/* Sidebar - Desktop */}
             <div className={`hidden md:block fixed top-0 left-0 h-full z-[100] transition-all duration-300 ease-in-out ${sidebarWidth}`}>
                 <RoleSidebar />

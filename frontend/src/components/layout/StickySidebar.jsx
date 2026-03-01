@@ -127,6 +127,15 @@ export const StickySidebar = () => {
                     </>
                 )}
 
+                {user?.role === 'Admin' && (
+                    <>
+                        <SidebarItem to="/admin/metrics" icon={BarChart3} label="Ecosystem" isCollapsed={isCollapsed} />
+                        <SidebarItem to="/admin/compliance" icon={Shield} label="Compliance" isCollapsed={isCollapsed} />
+                        <SidebarItem to="/admin/users" icon={Users} label="Users" isCollapsed={isCollapsed} />
+                        <SidebarItem to="/admin/audit" icon={FileText} label="Audit" isCollapsed={isCollapsed} />
+                    </>
+                )}
+
                 <div className="pt-4 pb-2 px-4 whitespace-nowrap overflow-hidden">
                     <p className={`text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] transition-opacity duration-300 ${isCollapsed ? 'opacity-0' : 'opacity-100'}`}>
                         Account

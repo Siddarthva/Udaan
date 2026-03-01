@@ -1,129 +1,235 @@
-import React, { useState, useEffect } from 'react';
-import { Target, TrendingUp, BarChart3, Clock, Search, PieChart, Shield, Loader2, ChevronRight, Briefcase } from 'lucide-react';
-import { Card, Button, Badge } from "../../../components/ui";
-import projectService from "../../../services/projectService";
-import { useAuth } from "../../auth/context/AuthContext";
-import { delay } from "../../../services/mockDb";
+import React, { useState, useEffect } from "react";
+import {
+    Activity,
+    Target,
+    Zap,
+    ChevronRight,
+    TrendingUp,
+    Users,
+    Clock,
+    Plus,
+    BarChart3,
+    Bell,
+    Layers,
+    MessageSquare,
+    Trophy,
+    ArrowUpRight,
+    Briefcase,
+    Shield,
+    PieChart,
+    Globe,
+    Landmark,
+    Search
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Card, Button, Badge, Skeleton } from "../../../components/ui";
+import { useAuthStore } from "../../../store/domainStores";
+import { useUIStore } from "../../../store/uiStore";
+import { GLOBAL_PROJECTS } from "../../../data/projects";
+import { PORTFOLIO_HEALTH } from "../../../data/portfolio";
+import { CAPITAL_LIFECYCLE } from "../../../data/portfolio";
+import { AnimatedSection, StaggerContainer } from "../../../components/animation/MotionSystem";
+import toast from "react-hot-toast";
 
 /**
- * SponsorDashboard: Professional investment and sponsorship workspace.
- * Integrated with mock services for real-world simulation.
+ * SponsorDashboard: Institutional capital oversight hub.
+ * Features: Capital lifecycle tracking, Portfolio PHI, Investment exposure, and Risk Radar.
  */
-const SponsorDashboard = () => {
-    const { user } = useAuth();
-    const [loading, setLoading] = useState(true);
-    const [stats, setStats] = useState({ capital: "₹0", activeInterests: 0, matching: "92%" });
+export default function SponsorDashboard() {
+    const { user } = useAuthStore();
+    const { openOverlay } = useUIStore();
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        const loadSponsorData = async () => {
-            setLoading(true);
-            try {
-                // Simulate fetching metrics/portfolio
-                await delay(1300);
-            } finally {
-                setLoading(false);
-            }
-        };
-        loadSponsorData();
-    }, [user.id]);
+        const timer = setTimeout(() => setIsLoading(false), 800);
+        return () => clearTimeout(timer);
+    }, []);
 
-    if (loading) {
+    if (isLoading) {
         return (
-            <div className="flex flex-col items-center justify-center min-h-[60vh] text-gray-400 space-y-4">
-                <Loader2 size={32} className="animate-spin opacity-50 text-gray-900" />
-                <p className="text-xs font-black uppercase tracking-[0.2em]">Analyzing Funding Pipelines...</p>
+            <div className="p-8 space-y-12 animate-in fade-in duration-500 bg-[#F8F9FA]/50 min-h-screen">
+                <div className="space-y-4">
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-12 w-[600px]" />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    {[1, 2, 3, 4].map(i => <div key={i} className="h-32 bg-white rounded-3xl" />)}
+                </div>
             </div>
         );
     }
 
     return (
-        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-gray-100">
-                <div className="space-y-1">
-                    <div className="flex items-center gap-2 mb-2">
-                        <Badge variant="outline" className="text-[10px] font-black uppercase tracking-widest bg-emerald-50 text-emerald-600 border-emerald-100 shadow-sm">Sponsor Workspace</Badge>
-                        <span className="h-1 w-1 bg-gray-300 rounded-full"></span>
-                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-1.5"><Shield size={12} /> Institutional Access Verified</span>
+        <div className="p-4 md:p-8 space-y-12 max-w-[1600px] mx-auto min-h-screen">
+            {/* Sponsor Executive Header */}
+            <AnimatedSection direction="down" className="flex flex-col md:flex-row md:items-end justify-between gap-8 pb-10 border-b border-gray-200/50">
+                <div className="space-y-4">
+                    <div className="flex items-center gap-3">
+                        <Badge className="bg-emerald-950 text-emerald-400 border-none px-4 py-1.5 font-black tracking-[0.2em] text-[10px] uppercase">Fund Oversight Active</Badge>
+                        <div className="flex items-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-widest bg-white px-4 py-1.5 rounded-full border border-gray-100">
+                            <Shield size={12} className="text-emerald-500" /> PHI: {PORTFOLIO_HEALTH.index} STABLE
+                        </div>
                     </div>
-                    <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-gray-900 leading-none">
-                        Welcome, {user?.name?.split(' ')[0] || 'Partner'}
+                    <h1 className="text-5xl font-black tracking-tight text-gray-900 leading-none">
+                        Allocation <span className="text-gray-400">Hub.</span>
                     </h1>
-                    <p className="text-sm text-gray-500 font-medium tracking-tight">Access your Funding Pipeline and manage institutional capital.</p>
+                    <p className="text-sm text-gray-500 font-medium max-w-xl leading-relaxed">
+                        Track institutional capital deployment, social yield performance, and portfolio-wide risk vectors.
+                    </p>
                 </div>
-                <div className="flex items-center gap-3">
-                    <Button variant="primary" size="lg" className="h-12 bg-emerald-600 hover:bg-emerald-700 shadow-xl shadow-emerald-200 text-white border-none py-2 px-6">
-                        <Search size={18} className="mr-2" /> Explore Verified Nodes
+
+                <div className="flex gap-4">
+                    <Button
+                        className="h-14 px-8 bg-gray-900 text-white rounded-2xl flex items-center gap-3 font-black text-xs uppercase shadow-xl hover:shadow-emerald-200 transition-all border-none active:scale-95"
+                        onClick={() => openOverlay('SCENARIO_SIMULATOR')}
+                    >
+                        <PieChart size={18} /> Risk Radar
                     </Button>
                 </div>
+            </AnimatedSection>
+
+            {/* Core Metrics */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <StatCard icon={TrendingUp} label="Capital Deployed" value="₹4.8 Cr" delta="+₹1.2 Cr" color="blue" />
+                <StatCard icon={Zap} label="Active Positions" value="7" delta="Synced" color="emerald" />
+                <StatCard icon={Users} label="Total Reach" value="52.4k" delta="+4.2k" color="indigo" />
+                <StatCard icon={Globe} label="ESG Matrix" value="8.6" delta="+0.4" color="amber" />
             </div>
 
-            {/* Core Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-                {[
-                    { label: "Capital Deployed", value: stats.capital, icon: TrendingUp, color: "emerald", trend: "0%" },
-                    { label: "Active Interests", value: stats.activeInterests.toString(), icon: Target, color: "blue", trend: "N/A" },
-                    { label: "Portfolio Yield", value: "12.4%", icon: PieChart, color: "purple", trend: "Est." },
-                    { label: "Sponsorships", value: "0", icon: Briefcase, color: "orange", trend: "N/A" }
-                ].map((stat, i) => (
-                    <Card key={i} className="p-5 border-none shadow-sm flex flex-col justify-between group hover:shadow-md transition-shadow">
-                        <div className="flex justify-between items-start mb-4">
-                            <div className={`p-2.5 rounded-xl bg-gray-50 text-gray-900`}>
-                                <stat.icon size={20} />
-                            </div>
-                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{stat.trend}</span>
-                        </div>
-                        <div>
-                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{stat.label}</p>
-                            <h3 className="text-2xl font-bold text-gray-900 tabular-nums">{stat.value}</h3>
-                        </div>
-                    </Card>
-                ))}
-            </div>
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-12">
+                <div className="xl:col-span-2 space-y-10">
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-gray-900">Capital Lifecycle Velocity</h2>
+                        <Button
+                            onClick={() => openOverlay('AUDIT_DRAWER')}
+                            variant="ghost"
+                            className="text-[10px] font-black uppercase text-gray-400"
+                        >
+                            Full Roadmap
+                        </Button>
+                    </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                {/* Main Content Area: Discovery & Portfolio */}
-                <div className="lg:col-span-8 space-y-8">
-                    <Card className="p-0 border-none shadow-sm overflow-hidden min-h-[400px] flex flex-col">
-                        <div className="p-6 border-b border-gray-50 flex items-center justify-between">
-                            <h3 className="text-lg font-bold text-gray-900 flex items-center gap-3">
-                                <PieChart size={20} className="text-gray-400" /> Portfolio Analytics
-                            </h3>
-                            <Button variant="ghost" size="sm" className="text-xs font-bold uppercase tracking-widest text-gray-400 hover:text-black hover:bg-gray-50 transition-colors">Generate Reports</Button>
-                        </div>
-                        <div className="flex-1 p-12 flex flex-col items-center justify-center bg-gray-50/50">
-                            <div className="h-16 w-16 bg-white rounded-2xl flex items-center justify-center text-gray-300 shadow-sm mb-6">
-                                <BarChart3 size={32} />
-                            </div>
-                            <h3 className="text-xl font-bold text-gray-900 mb-2">Pipeline is currently empty</h3>
-                            <p className="text-sm text-gray-500 max-w-xs text-center leading-relaxed">
-                                Start identifying innovation nodes by following sectors or exploring the verified discovery feed.
-                            </p>
-                            <Button size="lg" className="mt-8 bg-emerald-600 hover:bg-emerald-700 text-white h-12 px-8 rounded-xl shadow-xl shadow-emerald-100 active:scale-95 transition-all outline-none border-none">
-                                Discover High-Yield Assets
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {CAPITAL_LIFECYCLE.slice(0, 3).map((item, i) => (
+                            <Card key={i} className="p-8 border-none bg-white rounded-[2.5rem] shadow-sm space-y-4 hover:shadow-xl transition-all duration-500 group overflow-hidden relative">
+                                <div className="absolute top-0 right-0 w-24 h-24 bg-gray-50 rounded-bl-full -mr-12 -mt-12 group-hover:bg-gray-100 transition-all" />
+                                <div className="relative space-y-4">
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">{item.stage}</p>
+                                    <h3 className="text-2xl font-black text-gray-900 leading-none">{item.amount}</h3>
+                                    <div className="h-1 w-full bg-gray-100 rounded-full overflow-hidden">
+                                        <div className="h-full bg-gray-900 rounded-full" style={{ width: `${60 + i * 10}%` }} />
+                                    </div>
+                                </div>
+                            </Card>
+                        ))}
+                    </div>
+
+                    <div className="space-y-6 pt-6">
+                        <div className="flex items-center justify-between">
+                            <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-gray-900">High-Growth Targets</h2>
+                            <Button
+                                onClick={() => openOverlay('REGISTRY_VIEWER')}
+                                variant="ghost"
+                                className="text-[10px] font-black uppercase text-gray-400"
+                            >
+                                Discover More
                             </Button>
                         </div>
-                    </Card>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            {GLOBAL_PROJECTS.slice(0, 2).map((proj) => (
+                                <Card key={proj.id} className="p-8 border-none bg-white rounded-[3rem] shadow-sm hover:shadow-2xl transition-all duration-500 border border-gray-100 group">
+                                    <div className="flex justify-between items-start mb-6">
+                                        <div className="space-y-1">
+                                            <Badge className="bg-gray-900 text-white border-none font-black text-[8px] uppercase tracking-widest px-2 py-0.5 mb-1">{proj.stage}</Badge>
+                                            <h3 className="text-2xl font-bold text-gray-900">{proj.name}</h3>
+                                        </div>
+                                        <div className="h-12 w-12 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:bg-gray-900 group-hover:text-white transition-all transform group-hover:rotate-12">
+                                            <Search size={20} />
+                                        </div>
+                                    </div>
+                                    <div className="space-y-4 pt-4 border-t border-gray-50">
+                                        <div className="flex justify-between items-center text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                                            <span>Institutional Rating</span>
+                                            <span className="text-gray-900">{proj.innovationScore} PHI</span>
+                                        </div>
+                                        <Button
+                                            onClick={() => openOverlay('DISCOVERY_WIZARD', proj)}
+                                            className="w-full h-12 bg-gray-900 text-white border-none rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-gray-200 active:scale-95 transition-all"
+                                        >
+                                            Initiate Discovery Deep-Dive
+                                        </Button>
+                                    </div>
+                                </Card>
+                            ))}
+                        </div>
+                    </div>
                 </div>
 
-                {/* Sidebar area */}
-                <div className="lg:col-span-4 space-y-6">
-                    <Card className="p-6 border-none shadow-sm bg-gray-900 text-white overflow-hidden relative group">
-                        <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-110 transition-transform">
-                            <TrendingUp size={120} />
+                {/* Risk Radar Sidebar */}
+                <div className="space-y-10">
+                    <section className="space-y-6">
+                        <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-gray-900">Portfolio Obligations</h2>
+                        <div className="space-y-4">
+                            {[
+                                { title: "AgriDrone Tranche 2", date: "Mar 12, 2026", amount: "₹10.5 L" },
+                                { title: "MedAssist Final Review", date: "Apr 01, 2026", amount: "₹25.0 L" }
+                            ].map((ob, i) => (
+                                <Card key={i} className="p-6 border-none bg-white rounded-3xl shadow-sm border border-gray-50 flex items-center gap-6 group hover:border-emerald-600 transition-all cursor-pointer">
+                                    <div className="h-10 w-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center">
+                                        <Landmark size={18} />
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{ob.date}</p>
+                                        <h4 className="text-sm font-bold text-gray-900">{ob.title}</h4>
+                                    </div>
+                                    <p className="text-sm font-black text-gray-900">{ob.amount}</p>
+                                </Card>
+                            ))}
                         </div>
-                        <h3 className="text-base font-bold mb-4 relative z-10">Market Pulse</h3>
-                        <div className="space-y-3 relative z-10">
-                            <div className="bg-white/10 p-4 rounded-xl backdrop-blur-md border border-white/5">
-                                <p className="text-xs font-bold mb-1 opacity-60 uppercase tracking-widest">Sector Alert</p>
-                                <p className="text-sm font-medium leading-relaxed">HealthTech activity increased by 14% in your targeted region.</p>
-                            </div>
+                    </section>
+
+                    <Card className="p-10 border-none bg-emerald-950 text-white rounded-[3.5rem] shadow-2xl space-y-8 relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-900 blur-[40px] rounded-full -mr-12 -mt-12 group-hover:scale-110 transition-transform" />
+                        <Shield size={32} className="text-emerald-400" />
+                        <div className="space-y-2">
+                            <h4 className="text-2xl font-bold tracking-tight italic">ESG Integrity Node</h4>
+                            <p className="text-emerald-200 text-sm font-medium leading-relaxed">Your portfolio climate impact has surpassed Q1 targets by 14.5%.</p>
                         </div>
+                        <Button
+                            onClick={() => openOverlay('DOSSIER_VIEWER', { title: 'ESG Carbon Disclosure', status: 'Verified', findings: 'The portfolio consolidated carbon footprint has been reduced by 420 Metric Tons of CO2e in the current fiscal year.' })}
+                            className="w-full h-14 bg-white/10 hover:bg-white/20 text-white border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all"
+                        >
+                            Export Carbon Footprint Dossier
+                        </Button>
                     </Card>
                 </div>
             </div>
         </div>
     );
-};
+}
 
-export default SponsorDashboard;
+function StatCard({ icon: Icon, label, value, delta, color }) {
+    const colors = {
+        blue: "text-blue-600 bg-blue-50/50",
+        emerald: "text-emerald-600 bg-emerald-50/50",
+        amber: "text-amber-600 bg-amber-50/50",
+        indigo: "text-indigo-600 bg-indigo-50/50"
+    };
+
+    return (
+        <Card className="p-8 border-none bg-white rounded-[2.5rem] shadow-sm hover:shadow-xl transition-all group overflow-hidden">
+            <div className="space-y-4">
+                <div className="flex justify-between items-start">
+                    <div className={`h-12 w-12 rounded-2xl flex items-center justify-center ${colors[color]} group-hover:scale-110 transition-transform`}>
+                        <Icon size={20} />
+                    </div>
+                    <Badge className="bg-gray-50 text-gray-400 border-none font-black text-[9px] uppercase tracking-widest">{delta}</Badge>
+                </div>
+                <div>
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{label}</p>
+                    <p className="text-3xl font-black text-gray-900 tracking-tight leading-none">{value}</p>
+                </div>
+            </div>
+        </Card>
+    );
+}

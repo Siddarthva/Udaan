@@ -1,38 +1,29 @@
-const users = {
-  innovator: {
-    id: "u1",
-    name: "Aarav Patel",
-    handle: "@aarav_innovates",
-    role: "Innovator",
-    avatar: "AP",
-    bio: "Building sustainable agri-tech solutions for rural India.",
-    projects: ["p1"],
-    followers: 1205,
-    following: 45,
-    domain: "AgriTech",
+/**
+ * Ecosystem Role Metadata
+ */
+
+export const ROLE_PERMISSIONS = {
+  Innovator: {
+    access: ["projects", "funding", "mentors", "community", "profile"],
+    primaryAction: "Create Project"
   },
-  mentor: {
-    id: "u2",
-    name: "Dr. Sarah Khan",
-    handle: "@dr_sarah_tech",
-    role: "Mentor",
-    avatar: "SK",
-    bio: "Ex-Google. Helping startups navigate the valley of death.",
-    expertise: ["AI", "HealthTech"],
-    reviews: 48,
-    domain: "HealthTech",
+  Mentor: {
+    access: ["mentees", "requests", "sessions", "resources", "community", "profile"],
+    primaryAction: "Evaluate Project"
   },
-  sponsor: {
-    id: "u3",
-    name: "Vikram Ventures",
-    handle: "@vikram_vc",
-    role: "Sponsor",
-    avatar: "VV",
-    bio: "Seed stage funding for high-impact social enterprises.",
-    portfolio: 12,
-    funds_deployed: "₹4.5Cr",
-    domain: "CleanTech",
+  Sponsor: {
+    access: ["discover", "pipeline", "watchlist", "portfolio", "reports", "community", "profile"],
+    primaryAction: "Invest Capital"
   },
+  Admin: {
+    access: ["ecosystem-metrics", "compliance", "user-management", "program-ops", "community", "profile"],
+    primaryAction: "System Audit"
+  }
 };
 
-export default users;
+export const MOCK_USERS = [
+  { id: "usr_1", name: "Ananya Sharma", role: "Innovator", email: "ananya@udaan.in" },
+  { id: "usr_2", name: "Dr. Vikram Seth", role: "Mentor", email: "vikram@udaan.in" },
+  { id: "usr_3", name: "Global Venture Fund", role: "Sponsor", email: "gvf@udaan.in" },
+  { id: "usr_4", name: "Ministry Admin", role: "Admin", email: "admin@udaan.in" }
+];

@@ -27,16 +27,19 @@ import { AnimatedSection, StaggerContainer } from "../../../components/animation
 import DealWorkflow from "../components/DealWorkflow";
 import toast from "react-hot-toast";
 
+import { useFundingStore, useIntelligenceStore } from "../../../store/domainStores";
+
 /**
  * DiscoverProjectsPage: A professional investment discovery hub for sponsors.
  */
 export default function DiscoverProjectsPage() {
+    const { watchlist, addToWatchlist, removeFromWatchlist } = useFundingStore();
+    const { pushAlert } = useIntelligenceStore();
+
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedDomain, setSelectedDomain] = useState("All");
     const [selectedStage, setSelectedStage] = useState("All");
     const [isLoading, setIsLoading] = useState(true);
-    const [watchlist, setWatchlist] = useState([]);
-    const [pipeline, setPipeline] = useState([]);
     const [isDealWorkflowOpen, setIsDealWorkflowOpen] = useState(false);
     const [selectedProject, setSelectedProject] = useState(null);
 
@@ -45,25 +48,24 @@ export default function DiscoverProjectsPage() {
 
     useEffect(() => {
         const timer = setTimeout(() => setIsLoading(false), 800);
-        const savedWatchlist = JSON.parse(localStorage.getItem('sponsor_watchlist') || '[]');
-        const savedPipeline = JSON.parse(localStorage.getItem('sponsor_pipeline') || '[]');
-        setWatchlist(savedWatchlist);
-        setPipeline(savedPipeline);
         return () => clearTimeout(timer);
     }, []);
 
-    const toggleWatchlist = (id, e) => {
+    const toggleWatchlist = (project, e) => {
         e?.stopPropagation();
-        let newWatchlist;
-        if (watchlist.includes(id)) {
-            newWatchlist = watchlist.filter(item => item !== id);
+        if (watchlist.includes(project.id)) {
+            removeFromWatchlist(project.id);
             toast.success("Removed from watchlist.");
         } else {
-            newWatchlist = [...watchlist, id];
-            toast.success("Added to watchlist.");
+            addToWatchlist(project.id);
+            pushAlert({
+                type: 'WATCHLIST_ADD',
+                title: 'Strategic Asset Tracked',
+                message: `${project.name} has been added to your institutional watchlist.`,
+                severity: 'low'
+            });
+            toast.success("Added to institutional watchlist.");
         }
-        setWatchlist(newWatchlist);
-        localStorage.setItem('sponsor_watchlist', JSON.stringify(newWatchlist));
     };
 
     const addToPipeline = (project, e) => {
@@ -203,8 +205,8 @@ export default function DiscoverProjectsPage() {
                                 key={project.id}
                                 project={project}
                                 isInWatchlist={watchlist.includes(project.id)}
-                                onToggleWatchlist={(e) => toggleWatchlist(project.id, e)}
-                                onAddToPipeline={(e) => addToPipeline(project.id, e)}
+                                onToggleWatchlist={(e) => toggleWatchlist(project, e)}
+                                onAddToPipeline={(e) => addToPipeline(project, e)}
                             />
                         ))}
                     </div>
@@ -229,6 +231,20 @@ export default function DiscoverProjectsPage() {
                     />
                 )}
             </StaggerContainer>
+
+            {/* Deal Execution Workflow */}
+            <AnimatePresence>
+                {isDealWorkflowOpen && selectedProject && (
+                    <DealWorkflow
+                        project={selectedProject}
+                        isOpen={isDealWorkflowOpen}
+                        onClose={() => {
+                            setIsDealWorkflowOpen(false);
+                            // Optionally refresh stats or pipeline here
+                        }}
+                    />
+                )}
+            </AnimatePresence>
         </div>
     );
 }

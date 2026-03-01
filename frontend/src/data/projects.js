@@ -1,68 +1,98 @@
-const projects = [
+/**
+ * Global Projects Repository
+ * Stages: Idea, Prototype, MVP, Pilot, Scaling, Commercialization
+ */
+
+export const GLOBAL_PROJECTS = [
   {
-    id: "p1",
-    title: "AgriDrone AI",
-    founder: "Aarav Patel",
-    founder_role: "Chief Innovator",
+    id: "proj_1",
+    name: "AgriDrone AI",
     domain: "AgriTech",
-    stage: "Acceleration",
-    funding_goal: "₹50,00,000",
-    raised: "₹35,00,000",
-    description: "Autonomous drones for precision pesticide application using real-time AI computer vision.",
-    long_description: "Our AgriDrone uses multispectral aerial data + advanced AI models to reduce pesticide usage by 40% and boost yield. Already pilot tested across 3 states in India with 92% accuracy in pest detection.",
-    escrow_locked: true,
-    mentor_verified: true,
-    trending_score: 95,
-    image: "https://images.unsplash.com/photo-1508197149814-0cc02e8b7f74?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+    stage: "Pilot",
+    progress: 78,
+    founder: "Ananya Sharma",
+    location: "Pune, India",
+    fundingSought: "₹25 L",
+    traction: "350 Farms Onboarded",
+    innovationScore: 92,
+    risk: "Low",
+    impact: "Social & Environmental",
+    description: "Autonomous drone network for precision pesticide delivery and soil analysis.",
+    milestones: [
+      { title: "HW v2.0 Assembly", status: "Completed", date: "2026-01-10" },
+      { title: "SLA Draft with State Gov", status: "In Progress", date: "2026-03-20" },
+      { title: "Q3 Field Trials", status: "Upcoming", date: "2026-06-15" }
+    ],
+    team: [
+      { name: "Ananya Sharma", role: "CEO", img: "https://i.pravatar.cc/150?u=ananya" },
+      { name: "Rahul Das", role: "CTO", img: "https://i.pravatar.cc/150?u=rahul" }
+    ]
   },
   {
-    id: "p2",
-    title: "Eco-Grow Hydroponics",
-    founder: "Aarav Patel",
-    founder_role: "Sustainability Lead",
-    domain: "CleanTech",
-    stage: "Launchpad",
-    funding_goal: "₹15,00,000",
-    raised: "₹5,00,000",
-    description: "Scalable urban farming kits that use 95% less water than traditional soil farming.",
-    long_description: "Modular hydroponic units designed for urban apartment complexes. Integrated IoT sensors track nutrient levels and sunlight, and automate the growth cycle.",
-    escrow_locked: true,
-    mentor_verified: false,
-    trending_score: 75,
-    image: "https://images.unsplash.com/photo-1558449028-b53a39d100fc?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
-  },
-  {
-    id: "p3",
-    title: "MediChain Secure",
-    founder: "Priya Sharma",
-    founder_role: "CTO",
+    id: "proj_2",
+    name: "MedAssist AI",
     domain: "HealthTech",
-    stage: "Launchpad",
-    funding_goal: "₹10,00,000",
-    raised: "₹2,00,000",
-    description: "Blockchain-based medical record security for decentralized health data management.",
-    long_description: "Secure and portable EMR for Indian rural hospitals. Leverages Ethereum L2 for low-cost, high-frequency data anchoring. Backed by state health councils.",
-    escrow_locked: false,
-    mentor_verified: true,
-    trending_score: 45,
-    image: "https://images.unsplash.com/photo-1576091160550-2173dba999ef?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+    stage: "MVP",
+    progress: 62,
+    founder: "Dr. Vikram Seth",
+    location: "Bangalore, India",
+    fundingSought: "₹50 L",
+    traction: "2 Clinic Partners",
+    innovationScore: 88,
+    risk: "Medium",
+    impact: "Health & Wellbeing",
+    description: "AI-driven diagnostic layer for rural clinics without permanent doctors.",
+    milestones: [
+      { title: "Core ML Training", status: "Completed", date: "2026-02-01" },
+      { title: "Beta Prototype", status: "Delayed", date: "2026-02-15" },
+      { title: "Regulatory Approval", status: "Upcoming", date: "2026-05-10" }
+    ],
+    team: [
+      { name: "Vikram Seth", role: "Founder", img: "https://i.pravatar.cc/150?u=vikram" }
+    ]
   },
   {
-    id: "p4",
-    title: "SunLeaf Solar",
-    founder: "Karan Singh",
-    founder_role: "CEO",
-    domain: "CleanTech",
-    stage: "Acceleration",
-    funding_goal: "₹80,00,000",
-    raised: "₹62,00,000",
-    description: "Transparent solar panels that can be integrated into building windows.",
-    long_description: "Nano-engineered photovoltaic cells that capture ultraviolet and infrared light while remaining transparent to visible light. Turning every skyscraper into a power plant.",
-    escrow_locked: true,
-    mentor_verified: true,
-    trending_score: 88,
-    image: "https://images.unsplash.com/photo-1509391366360-feaffa663abd?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+    id: "proj_3",
+    name: "Eco-Grow Systems",
+    domain: "Sustainability",
+    stage: "Scaling",
+    progress: 94,
+    founder: "Sarah Khan",
+    location: "Hyderabad, India",
+    fundingSought: "₹1.2 Cr",
+    traction: "8 Corporate Clients",
+    innovationScore: 76,
+    risk: "Low",
+    impact: "Environment",
+    description: "Circular hydroponic systems for corporate campuses.",
+    milestones: [
+      { title: "Client Expansion", status: "In Progress", date: "2026-04-01" }
+    ],
+    team: [
+      { name: "Sarah Khan", role: "CEO", img: "https://i.pravatar.cc/150?u=sarah" }
+    ]
+  },
+  {
+    id: "proj_4",
+    name: "FinGuard AI",
+    domain: "FinTech",
+    stage: "Scaling",
+    progress: 85,
+    founder: "Zaid Ali",
+    location: "Mumbai, India",
+    fundingSought: "₹3 Cr",
+    traction: "1.2k Active Users",
+    innovationScore: 94,
+    risk: "High",
+    impact: "Financial Inclusion",
+    description: "Micro-insurance engine for gig workers.",
+    milestones: [
+      { title: "Round A Closing", status: "In Progress", date: "2026-03-30" }
+    ],
+    team: [
+      { name: "Zaid Ali", role: "CEO", img: "https://i.pravatar.cc/150?u=zaid" }
+    ]
   }
 ];
 
-export default projects;
+export const PROJECT_STAGES = ["Idea", "Prototype", "MVP", "Pilot", "Scaling", "Commercialization"];

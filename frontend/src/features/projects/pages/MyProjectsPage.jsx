@@ -81,12 +81,14 @@ export default function MyProjectsPage() {
                 </AnimatedSection>
 
                 <AnimatedSection direction="left" className="flex flex-wrap gap-4 w-full lg:w-auto">
-                    <Button
-                        className="flex-1 h-14 bg-gray-900 text-white rounded-2xl flex items-center justify-center gap-3 font-black text-xs uppercase shadow-xl hover:shadow-gray-200/50 transition-all border-none"
-                        onClick={() => toast.success("Opening Project Creation Suite...")}
-                    >
-                        <Plus size={18} /> New Project
-                    </Button>
+                    <div className="flex gap-4">
+                        <Button
+                            onClick={() => openOverlay('VENTURE_WIZARD')}
+                            className="h-14 px-8 bg-gray-900 text-white rounded-2xl flex items-center gap-3 font-black text-xs uppercase shadow-xl hover:shadow-gray-200/50 border-none transition-all active:scale-95"
+                        >
+                            <Plus size={18} /> Launch New Venture
+                        </Button>
+                    </div>
                     <Button
                         variant="white"
                         className="h-14 w-14 p-0 rounded-2xl border-gray-100 shadow-sm"
@@ -248,8 +250,17 @@ function OwnerProjectCard({ project }) {
                             <span className="text-[10px] font-bold text-gray-400 self-center ml-4 uppercase tracking-widest">Team Size: {project.teamSize}</span>
                         </div>
                         <div className="flex items-center gap-4">
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Updated {project.lastUpdated}</p>
-                            <Button className="h-12 px-8 bg-gray-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest border-none shadow-xl flex items-center gap-2 group/btn">
+                            <Button
+                                onClick={() => openOverlay('DISCOVERY_WIZARD', project)}
+                                variant="outline"
+                                className="h-12 px-6 rounded-2xl text-[10px] font-black uppercase tracking-widest border-gray-100 hover:border-gray-900 flex items-center gap-2"
+                            >
+                                <SearchCode size={14} /> Discovery
+                            </Button>
+                            <Button
+                                onClick={() => openOverlay('DOSSIER_VIEWER', project)}
+                                className="h-12 px-8 bg-gray-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest border-none shadow-xl flex items-center gap-2 group/btn"
+                            >
                                 Manage <ArrowUpRight size={14} className="group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5 transition-transform" />
                             </Button>
                         </div>

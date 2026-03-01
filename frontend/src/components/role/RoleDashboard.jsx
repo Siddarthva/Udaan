@@ -6,6 +6,7 @@ import LoadingScreen from "../common/LoadingScreen";
 const InnovatorDashboard = lazy(() => import("../../features/dashboard/pages/InnovatorDashboard"));
 const SponsorDashboard = lazy(() => import("../../features/dashboard/pages/SponsorDashboard"));
 const MentorDashboard = lazy(() => import("../../features/dashboard/pages/MentorDashboard"));
+const AdminDashboard = lazy(() => import("../../features/dashboard/pages/AdminDashboard"));
 
 /**
  * RoleDashboard: Primary entry point for authenticated users.
@@ -20,6 +21,7 @@ export const RoleDashboard = () => {
             {role === 'Innovator' && <InnovatorDashboard />}
             {role === 'Sponsor' && <SponsorDashboard />}
             {role === 'Mentor' && <MentorDashboard />}
+            {role === 'Admin' && <AdminDashboard />}
         </Suspense>
     );
 };

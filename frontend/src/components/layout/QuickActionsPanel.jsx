@@ -1,14 +1,17 @@
 import React from "react";
 import { Plus, Zap, Heart, MessageSquare, Search, FileText } from "lucide-react";
-import { useAuth } from "../../features/auth/context/AuthContext";
+import { useAuthStore } from "../../store/domainStores";
+import { useUIStore } from "../../store/uiStore";
 import { Card } from "../ui";
+import toast from "react-hot-toast";
 
 /**
  * QuickActionsPanel: Context-aware rapid execution component.
  * Adapts actions based on the user's role in the ecosystem.
  */
 export const QuickActionsPanel = () => {
-    const { user } = useAuth();
+    const { user } = useAuthStore();
+    const { openOverlay } = useUIStore();
     const role = user?.role || 'Innovator';
 
     const actionSets = {
@@ -31,11 +34,38 @@ export const QuickActionsPanel = () => {
 
     const actions = actionSets[role] || actionSets.Innovator;
 
+    const handleAction = (label) => {
+        switch (label) {
+            case "Contact Mentor":
+            case "Open Calendar":
+                openOverlay('SCHEDULE_SESSION');
+                break;
+            case "Funding Sheet":
+            case "Market Intel":
+            case "Review Pitch":
+                openOverlay('DOSSIER_VIEWER', { title: `${label} - Strategic Analysis`, findings: 'Consolidated ecosystem data indicates high liquidity and positive traction across primary innovation nodes.' });
+                break;
+            case "Watchlist Sync":
+                openOverlay('AUDIT_DRAWER');
+                break;
+            case "Add Milestone":
+            case "Update Metrics":
+                openOverlay('DISCOVERY_WIZARD');
+                break;
+            case "Endorse Node":
+                openOverlay('COMPLIANCE_CONSOLE');
+                break;
+            default:
+                toast.success(`Action Triggered: ${label}`);
+        }
+    };
+
     return (
-        <Card className="p-1 border-none bg-gray-50 flex items-center gap-1 rounded-2xl">
+        <Card className="p-1 border-none bg-gray-100 flex items-center gap-1 rounded-2xl">
             {actions.map((action, i) => (
                 <button
                     key={i}
+                    onClick={() => handleAction(action.label)}
                     className="flex items-center gap-2 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-black hover:bg-white rounded-xl transition-all active:scale-95 group"
                 >
                     <div className={`p-1 rounded-md transition-colors ${action.bg} ${action.color} group-hover:bg-gray-100`}>
