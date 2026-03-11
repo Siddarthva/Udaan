@@ -104,11 +104,11 @@ export const AppRoutes = () => {
                             <Route path="/admin/audit" element={<div className="p-8">System Audit Logs</div>} />
                         </Route>
                     </Route>
-
-                    {/* Fallback */}
-                    <Route path="/404" element={<NotFoundPage />} />
-                    <Route path="*" element={<Navigate to="/404" replace />} />
                 </Route>
+
+                {/* Fallback — accessible regardless of auth state */}
+                <Route path="/404" element={<NotFoundPage />} />
+                <Route path="*" element={<Navigate to="/404" replace />} />
             </Routes>
         </Suspense>
     );

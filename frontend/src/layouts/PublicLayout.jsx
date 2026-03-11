@@ -30,11 +30,7 @@ export const PublicLayout = () => {
                         <span className="font-bold text-[22px] tracking-tight group-hover:text-black transition-colors">Udaan</span>
                     </Link>
 
-                    <nav className="hidden md:flex items-center gap-10">
-                        <Link to="/vision" className="text-sm font-semibold text-gray-500 hover:text-black transition-colors">Vision</Link>
-                        <Link to="/pricing" className="text-sm font-semibold text-gray-500 hover:text-black transition-colors">Ecosystem</Link>
-                        <Link to="/contact" className="text-sm font-semibold text-gray-500 hover:text-black transition-colors">Support</Link>
-                    </nav>
+                    
 
                     <div className="flex items-center gap-4">
                         <Link to="/auth" className="hidden sm:block text-sm font-bold text-gray-900 px-6 py-2.5 rounded-xl hover:bg-gray-50 transition-colors">

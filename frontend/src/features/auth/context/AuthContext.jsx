@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/store/authStore";
 
 const AuthContext = createContext(undefined);
@@ -9,6 +10,7 @@ const AuthContext = createContext(undefined);
  */
 export const AuthProvider = ({ children }) => {
     const { user, loadUserFromLocalStorage, logout: storeLogout } = useAuthStore();
+    const navigate = useNavigate();
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -23,8 +25,9 @@ export const AuthProvider = ({ children }) => {
         console.warn("[AuthContext]: login is now handled via the auth store and AuthPage forms.");
     };
 
-    const logout = async () => {
+    const logout = () => {
         storeLogout();
+        navigate('/', { replace: true });
     };
 
     const register = async () => {

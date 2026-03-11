@@ -87,7 +87,9 @@ export const useAuthStore = create(
             },
 
             /**
-             * Logout: clear session but keep the registered user.
+             * Logout: clear session and reset auth state.
+             * The registered user data (STORAGE_USER_KEY) is kept so
+             * the user can log in again without re-registering.
              */
             logout: () => {
                 try {
@@ -95,7 +97,7 @@ export const useAuthStore = create(
                 } catch (e) {
                     console.error('[AUTH]: Failed to clear session', e);
                 }
-                set({ isAuthenticated: false });
+                set({ user: null, isAuthenticated: false });
             },
 
             /**
