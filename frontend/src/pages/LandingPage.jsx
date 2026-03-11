@@ -79,14 +79,7 @@ export default function LandingPage() {
                             >
                                 Get Started <ArrowRight className="ml-2" size={18} />
                             </Button>
-                            <Button
-                                variant="outline"
-                                onClick={() => navigate("/projects")}
-                                size="lg"
-                                className="h-12 px-8 text-base bg-white"
-                            >
-                                Contact Sales
-                            </Button>
+                            
                         </div>
                     </motion.div>
                 </div>

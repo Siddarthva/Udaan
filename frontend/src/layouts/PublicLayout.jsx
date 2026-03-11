@@ -19,7 +19,7 @@ export const PublicLayout = () => {
     }
 
     return (
-        <div className="min-h-screen bg-white text-[#1A1F23]">
+        <div className="relative min-h-screen bg-white text-[#1A1F23]">
             {/* Minimalist Public Navbar */}
             <header className="fixed top-0 left-0 w-full h-20 bg-white/80 backdrop-blur-md z-[200] border-b border-gray-100/50">
                 <div className="max-w-[1280px] mx-auto px-6 h-full flex items-center justify-between">
