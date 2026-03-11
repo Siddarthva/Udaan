@@ -14,7 +14,10 @@ import {
     LayoutDashboard,
     Globe,
     Cpu,
-    Briefcase
+    Briefcase,
+    Clock,
+    Download,
+    FileText
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Card, Button, Badge, Skeleton, InputField } from "../../../components/ui";
@@ -78,15 +81,15 @@ export default function AdminDashboard() {
                     <Button
                         onClick={() => openOverlay('REGISTRY_VIEWER')}
                         variant="outline"
-                        className="h-14 px-8 border-gray-200 text-gray-900 rounded-2xl flex items-center gap-3 font-black text-xs uppercase hover:bg-gray-50 transition-all"
+                        className="h-14 px-8 border-gray-200 text-gray-900 rounded-2xl flex items-center gap-3 font-black text-xs uppercase hover:bg-gray-50 transition-all active:scale-95"
                     >
-                        <Layers size={18} /> View Registry
+                        <Layers size={18} /> View Full Registry
                     </Button>
                     <Button
-                        onClick={() => openOverlay('COMPLIANCE_CONSOLE')}
-                        className="h-14 px-8 bg-gray-900 text-white rounded-2xl flex items-center gap-3 font-black text-xs uppercase shadow-xl hover:shadow-gray-200/50 border-none transition-all"
+                        onClick={() => openOverlay('AUDIT_DRAWER')}
+                        className="h-14 px-8 bg-gray-900 text-white rounded-2xl flex items-center gap-3 font-black text-xs uppercase shadow-xl hover:shadow-gray-200/50 border-none transition-all active:scale-95"
                     >
-                        <Activity size={18} /> Governance Node
+                        <Shield size={18} /> System Audit
                     </Button>
                 </div>
             </AnimatedSection>
@@ -141,21 +144,25 @@ export default function AdminDashboard() {
                                     <h3 className="text-4xl font-black">₹482.50<span className="text-lg opacity-40 ml-1">Cr</span></h3>
                                     <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Available Capital Pool</p>
                                 </div>
-                                <div className="grid grid-cols-2 gap-4 pt-4 border-t border-white/5">
-                                    <div>
-                                        <p className="text-[8px] font-black text-gray-500 uppercase mb-1">Burn Rate</p>
-                                        <p className="text-sm font-black text-white">₹12.4M/mo</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-[8px] font-black text-gray-500 uppercase mb-1">Runway</p>
-                                        <p className="text-sm font-black text-emerald-400">38 Months</p>
-                                    </div>
+                                <div className="grid grid-cols-2 gap-4 pt-6 border-t border-white/5">
+                                    <Button
+                                        onClick={() => openOverlay('COMPLIANCE_CONSOLE')}
+                                        className="h-10 bg-white/10 hover:bg-white/20 text-white border-white/10 rounded-xl text-[8px] font-black uppercase tracking-widest transition-all"
+                                    >
+                                        Compliance Status
+                                    </Button>
+                                    <Button
+                                        onClick={() => openOverlay('SCENARIO_SIMULATOR')}
+                                        className="h-10 bg-white/10 hover:bg-white/20 text-white border-white/10 rounded-xl text-[8px] font-black uppercase tracking-widest transition-all"
+                                    >
+                                        Scenario Pulse
+                                    </Button>
                                 </div>
                                 <Button
-                                    onClick={() => openOverlay('COMPLIANCE_CONSOLE')}
-                                    className="w-full h-12 bg-white/5 hover:bg-white/10 text-white border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
+                                    onClick={() => openOverlay('DOSSIER_VIEWER', { title: 'Institutional Liquidity Forecast', type: 'Strategic' })}
+                                    className="w-full h-12 bg-white text-black hover:bg-emerald-400 hover:text-white border-none rounded-xl text-[10px] font-black uppercase tracking-widest transition-all mt-4"
                                 >
-                                    Governance Console
+                                    Liquidity Forecast
                                 </Button>
                             </div>
                         </Card>
@@ -223,6 +230,26 @@ export default function AdminDashboard() {
                             Launch Full System Audit
                         </Button>
                     </Card>
+
+                    <div className="space-y-4 pt-4">
+                        <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-gray-900 border-t border-gray-100 pt-6">System Reports Node</h2>
+                        <div className="grid grid-cols-1 gap-3">
+                            <Button
+                                onClick={() => openOverlay('COMPLIANCE_CONSOLE', { download: true })}
+                                variant="outline"
+                                className="w-full h-12 rounded-xl text-[9px] font-black uppercase tracking-widest border-gray-100 flex items-center justify-center gap-2 hover:bg-gray-50 transition-all active:scale-95"
+                            >
+                                <Download size={14} /> Download Full Compliance Report
+                            </Button>
+                            <Button
+                                onClick={() => openOverlay('AUDIT_DRAWER', { detail: true })}
+                                variant="outline"
+                                className="w-full h-12 rounded-xl text-[9px] font-black uppercase tracking-widest border-gray-100 flex items-center justify-center gap-2 hover:bg-gray-50 transition-all active:scale-95"
+                            >
+                                <FileText size={14} /> Audit Detail
+                            </Button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

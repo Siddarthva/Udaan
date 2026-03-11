@@ -18,12 +18,16 @@ import {
     Clock,
     Zap,
     Trophy,
-    Briefcase
+    Briefcase,
+    SearchCode,
+    MoreVertical
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, Button, Badge, Skeleton, EmptyState } from "../../../components/ui";
+import { useUIStore } from "../../../store/uiStore";
 import { MY_PROJECTS, MY_PORTFOLIO_STATS } from "../../../data/myProjects";
 import { AnimatedSection, StaggerContainer } from "../../../components/animation/MotionSystem";
+import { useProjectStore, useIntelligenceStore, useAuthStore } from "../../../store/domainStores";
 import toast from "react-hot-toast";
 
 /**
@@ -31,6 +35,7 @@ import toast from "react-hot-toast";
  * Replaces the general discovery view with a personal project management dashboard.
  */
 export default function MyProjectsPage() {
+    const { openOverlay } = useUIStore();
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
@@ -138,7 +143,10 @@ export default function MyProjectsPage() {
                         <h4 className="text-lg font-bold text-gray-900">Ready for Fundraising?</h4>
                         <p className="text-sm text-gray-500 font-medium">Your activity scores are high enough to unlock "Investor Mode". Apply for institutional review today.</p>
                     </div>
-                    <Button variant="outline" className="h-12 px-6 rounded-xl text-xs font-bold border-gray-200 hover:border-black uppercase tracking-widest shrink-0">
+                    <Button
+                        onClick={() => openOverlay('COMPLIANCE_CONSOLE', { title: 'Fundraising Readiness Audit', project: 'Portfolio-wide' })}
+                        variant="outline" className="w-full lg:w-auto h-14 px-8 rounded-2xl text-[10px] font-black uppercase tracking-widest border-gray-200 active:scale-95 transition-all"
+                    >
                         Unlock Mode
                     </Button>
                 </div>
@@ -171,6 +179,7 @@ function StatCard({ icon: Icon, label, value, color }) {
 }
 
 function OwnerProjectCard({ project }) {
+    const { openOverlay } = useUIStore();
     return (
         <motion.div
             layout
@@ -193,11 +202,23 @@ function OwnerProjectCard({ project }) {
                             <h3 className="text-4xl font-black text-gray-900 group-hover:text-black">{project.name}</h3>
                         </div>
                         <div className="flex gap-2">
-                            <Button variant="white" className="h-10 w-10 p-0 rounded-xl shadow-sm border-gray-100">
+                            <Button
+                                onClick={() => toast.success("Share node link copied to clipboard.")}
+                                variant="white" className="h-10 w-10 p-0 rounded-xl shadow-sm border-gray-100 active:scale-90 transition-all"
+                            >
                                 <Share2 size={16} />
                             </Button>
-                            <Button variant="white" className="h-10 w-10 p-0 rounded-xl shadow-sm border-gray-100">
+                            <Button
+                                onClick={() => toast.success("Opening Project Settings node...")}
+                                variant="white" className="h-10 w-10 p-0 rounded-xl shadow-sm border-gray-100 active:scale-90 transition-all"
+                            >
                                 <Settings size={16} />
+                            </Button>
+                            <Button
+                                onClick={() => toast.success("Advanced node controls active.")}
+                                variant="ghost" className="h-8 w-8 p-0 rounded-lg text-gray-300 group-hover:text-gray-900 transition-colors active:scale-90"
+                            >
+                                <MoreVertical size={16} />
                             </Button>
                         </div>
                     </div>

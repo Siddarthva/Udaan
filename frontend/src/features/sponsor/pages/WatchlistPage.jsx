@@ -31,6 +31,7 @@ import { Card, Button, Badge, InputField, Skeleton, EmptyState } from "../../../
 import { WATCHLIST } from "../../../data/watchlist";
 import { SPONSOR_STATS } from "../../../data/sponsorProjects";
 import { AnimatedSection, StaggerContainer } from "../../../components/animation/MotionSystem";
+import { useUIStore } from "../../../store/uiStore";
 import DealWorkflow from "../components/DealWorkflow";
 import toast from "react-hot-toast";
 
@@ -38,6 +39,7 @@ import toast from "react-hot-toast";
  * WatchlistPage: A centralized tracker for shortlisted opportunities monitoring and analysis.
  */
 export default function WatchlistPage() {
+    const { openOverlay } = useUIStore();
     const [isLoading, setIsLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
     const [watchlistItems, setWatchlistItems] = useState(WATCHLIST);
@@ -205,7 +207,10 @@ export default function WatchlistPage() {
                     </div>
 
                     <div className="shrink-0 w-full lg:w-auto">
-                        <Button variant="outline" className="w-full lg:w-auto h-14 px-8 rounded-2xl text-[10px] font-black uppercase tracking-widest border-gray-200">
+                        <Button
+                            onClick={() => openOverlay('DOSSIER_VIEWER', { title: 'Portfolio Suitability Analysis', date: new Date().toLocaleDateString() })}
+                            variant="outline" className="w-full lg:w-auto h-14 px-8 rounded-2xl text-[10px] font-black uppercase tracking-widest border-gray-200 active:scale-95 transition-all"
+                        >
                             Download Portfolio Analysis Report
                         </Button>
                     </div>
@@ -275,6 +280,7 @@ function WatchlistCard({ item, onRemove, onMove }) {
                             Accelerate to Pipeline <ArrowRight size={14} className="group-hover/btn:translate-x-1 transition-transform" />
                         </Button>
                         <Button
+                            onClick={() => openOverlay('DOSSIER_VIEWER', { ...item, name: item.projectName })}
                             variant="white"
                             className="h-12 px-5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm border-gray-100 group/btn2 active:scale-95 transition-all"
                         >

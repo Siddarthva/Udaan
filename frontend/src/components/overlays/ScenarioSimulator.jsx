@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Zap, TrendingUp, TrendingDown, Target, Activity, ShieldCircle, PieChart } from 'lucide-react';
+import { X, Zap, TrendingUp, TrendingDown, Target, Activity, ShieldCheck, PieChart } from 'lucide-react';
 import { Button, Card, Badge } from '../ui';
 
 export default function ScenarioSimulator({ onClose }) {
@@ -160,7 +160,7 @@ export default function ScenarioSimulator({ onClose }) {
                     <div className="mt-auto p-10 bg-indigo-50 border border-indigo-100 rounded-[2.5rem] flex items-center justify-between group cursor-help">
                         <div className="flex items-center gap-6">
                             <div className="h-14 w-14 bg-indigo-600 text-white rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                                <ShieldCircle size={24} />
+                                <ShieldCheck size={24} />
                             </div>
                             <div>
                                 <h5 className="font-black text-indigo-900 uppercase text-[10px] tracking-widest mb-1">Compliance Intelligence Advisory</h5>

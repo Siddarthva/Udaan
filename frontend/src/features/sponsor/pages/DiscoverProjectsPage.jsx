@@ -28,6 +28,7 @@ import DealWorkflow from "../components/DealWorkflow";
 import toast from "react-hot-toast";
 
 import { useFundingStore, useIntelligenceStore } from "../../../store/domainStores";
+import { useUIStore } from "../../../store/uiStore";
 
 /**
  * DiscoverProjectsPage: A professional investment discovery hub for sponsors.
@@ -35,6 +36,7 @@ import { useFundingStore, useIntelligenceStore } from "../../../store/domainStor
 export default function DiscoverProjectsPage() {
     const { watchlist, addToWatchlist, removeFromWatchlist } = useFundingStore();
     const { pushAlert } = useIntelligenceStore();
+    const { openOverlay } = useUIStore();
 
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedDomain, setSelectedDomain] = useState("All");
@@ -128,14 +130,23 @@ export default function DiscoverProjectsPage() {
                     </p>
                 </div>
 
-                <div className="relative group w-full md:w-96">
-                    <InputField
-                        icon={Search}
-                        placeholder="Search ventures, problems..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="bg-white border-gray-200 h-14 rounded-2xl focus:shadow-xl transition-all"
-                    />
+                <div className="flex items-center gap-4 w-full md:w-auto">
+                    <div className="relative group w-full md:w-96">
+                        <InputField
+                            icon={Search}
+                            placeholder="Search ventures, problems..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="bg-white border-gray-200 h-14 rounded-2xl focus:shadow-xl transition-all"
+                        />
+                    </div>
+                    <Button
+                        onClick={() => openOverlay('DOSSIER_VIEWER', { title: 'Institutional Impact Report', type: 'Strategic' })}
+                        variant="white"
+                        className="h-14 px-6 rounded-2xl flex items-center gap-3 font-black text-xs uppercase shadow-sm border-gray-100 hover:bg-gray-50 transition-all active:scale-95"
+                    >
+                        <Download size={18} /> Download Impact Report
+                    </Button>
                 </div>
             </AnimatedSection>
 
@@ -185,6 +196,12 @@ export default function DiscoverProjectsPage() {
                         }}
                     >
                         Reset
+                    </Button>
+                    <Button
+                        onClick={() => toast.success("Applying Institutional filters to discovery stream node.")}
+                        className="h-12 px-6 bg-gray-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest border-none active:scale-95 transition-all shadow-lg"
+                    >
+                        Apply Institutional Filters
                     </Button>
                 </div>
 
@@ -272,6 +289,7 @@ function SponsorStatCard({ icon: Icon, label, value, color }) {
 }
 
 function SponsorProjectCard({ project, isInWatchlist, onToggleWatchlist, onAddToPipeline }) {
+    const { openOverlay } = useUIStore();
     return (
         <motion.div
             layout
@@ -334,6 +352,7 @@ function SponsorProjectCard({ project, isInWatchlist, onToggleWatchlist, onAddTo
                     </Button>
                     <Button
                         variant="white"
+                        onClick={() => openOverlay('DOSSIER_VIEWER', project)}
                         className="h-12 px-5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm border-gray-100 flex items-center gap-2 group/btn2 active:scale-95 transition-all"
                     >
                         Details <ArrowUpRight size={14} className="group-hover/btn2:translate-x-0.5 group-hover/btn2:-translate-y-0.5 transition-transform" />

@@ -247,9 +247,9 @@ function ProjectRow({ project }) {
                 <Button
                     onClick={() => openOverlay('DISCOVERY_WIZARD', project)}
                     variant="ghost"
-                    className="h-12 px-6 rounded-2xl text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-gray-900 border border-gray-100 hover:border-gray-900 flex items-center gap-2"
+                    className="h-12 px-6 rounded-2xl text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-gray-900 border border-gray-100 hover:border-gray-900 flex items-center gap-2 active:scale-95 transition-all"
                 >
-                    <Target size={14} /> Discovery
+                    <Target size={14} /> Initiate Discovery Deep-Dive
                 </Button>
                 <Button
                     onClick={() => openOverlay('DOSSIER_VIEWER', project)}

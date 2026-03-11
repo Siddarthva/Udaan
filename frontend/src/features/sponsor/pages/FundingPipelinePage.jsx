@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, Button, Badge, Skeleton, EmptyState } from "../../../components/ui";
+import { useUIStore } from "../../../store/uiStore";
 import { FUNDING_PIPELINE } from "../../../data/fundingPipeline";
 import { SPONSOR_STATS } from "../../../data/sponsorProjects";
 import { AnimatedSection, StaggerContainer } from "../../../components/animation/MotionSystem";
@@ -38,6 +39,7 @@ import toast from "react-hot-toast";
  * FundingPipelinePage: A CRM-like deal flow manager for sponsors and grant committees.
  */
 export default function FundingPipelinePage() {
+    const { openOverlay } = useUIStore();
     const [isLoading, setIsLoading] = useState(true);
     const [pipelineItems, setPipelineItems] = useState(FUNDING_PIPELINE);
 
@@ -116,7 +118,10 @@ export default function FundingPipelinePage() {
                                     {pipelineItems.filter(p => p.stage === stage).length}
                                 </Badge>
                             </div>
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-lg text-gray-300">
+                            <Button
+                                onClick={() => openOverlay('DEAL_WIZARD', { stage })}
+                                variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-lg text-gray-300 hover:text-gray-900 active:scale-95 transition-all"
+                            >
                                 <Plus size={16} />
                             </Button>
                         </div>
@@ -185,7 +190,10 @@ function PipelineCard({ item, onMove, nextStage }) {
                                 REQUEST: {item.requestedAmount}
                             </p>
                         </div>
-                        <Button variant="ghost" className="h-8 w-8 p-0 rounded-lg text-gray-300 group-hover:text-gray-900 transition-colors">
+                        <Button
+                            onClick={() => toast.success("Advanced node controls active.")}
+                            variant="ghost" className="h-8 w-8 p-0 rounded-lg text-gray-300 group-hover:text-gray-900 transition-colors active:scale-90"
+                        >
                             <MoreVertical size={16} />
                         </Button>
                     </div>

@@ -233,7 +233,7 @@ export default function PortfolioImpactPage() {
                                             onClick={() => openOverlay('COMPLIANCE_CONSOLE')}
                                             className="w-full h-14 bg-white/10 hover:bg-white/20 text-white border-none rounded-2xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all"
                                         >
-                                            Governance & Compliance Node
+                                            Launch Full Compliance Audit
                                         </Button>
                                     </Card>
                                 </section>
@@ -260,7 +260,11 @@ export default function PortfolioImpactPage() {
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                     className="bg-white border-gray-200 h-12 rounded-2xl w-80"
                                 />
-                                <Button variant="secondary" className="h-12 rounded-2xl px-6 bg-white border-gray-200 flex items-center gap-2 font-black text-[10px] uppercase">
+                                <Button
+                                    onClick={() => toast.success("Advanced investment filters applied to portfolio node.", { icon: '🔍' })}
+                                    variant="secondary"
+                                    className="h-12 rounded-2xl px-6 bg-white border-gray-200 flex items-center gap-2 font-black text-[10px] uppercase active:scale-95 transition-all"
+                                >
                                     <Filter size={14} /> Allocation Filters
                                 </Button>
                             </div>
@@ -524,7 +528,10 @@ function PositionCard({ position, onOpenDossier }) {
                             </div>
                             <h3 className="text-2xl font-black text-gray-900 leading-tight group-hover:text-black">{position.name}</h3>
                         </div>
-                        <div className="h-12 w-12 bg-white rounded-2xl shadow-sm border border-gray-100 flex items-center justify-center group-hover:bg-gray-900 group-hover:text-white transition-all transform group-hover:rotate-12">
+                        <div
+                            onClick={onOpenDossier}
+                            className="h-12 w-12 bg-white rounded-2xl shadow-sm border border-gray-100 flex items-center justify-center group-hover:bg-gray-900 group-hover:text-white transition-all transform group-hover:rotate-12 cursor-pointer active:scale-90"
+                        >
                             <ArrowUpRight size={20} />
                         </div>
                     </div>

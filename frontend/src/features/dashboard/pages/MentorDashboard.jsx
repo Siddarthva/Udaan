@@ -191,6 +191,7 @@ function StatCard({ icon: Icon, label, value, delta, color }) {
 }
 
 function MenteeProjectCard({ project, onEvaluate }) {
+    const { openOverlay } = useUIStore();
     return (
         <Card className="p-8 border-none bg-white rounded-[3rem] shadow-sm hover:shadow-2xl transition-all duration-500 border border-gray-100 group">
             <div className="flex items-start gap-8">
