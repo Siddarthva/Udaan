@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Search, Bell, Menu, User, LogOut, Settings, HelpCircle, LayoutGrid, CheckSquare, Plus } from "lucide-react";
 import { useAuthStore } from "@/store/domainStores";
 import { useUIStore } from "@/store/uiStore";
@@ -14,6 +14,7 @@ import { motion, AnimatePresence } from "framer-motion";
  */
 export const TopNavigationBar = () => {
     const { user, logout } = useAuthStore();
+    const navigate = useNavigate();
     const { toggleSidebar, openOverlay } = useUIStore();
     const [scrolled, setScrolled] = useState(false);
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -133,6 +134,7 @@ export const TopNavigationBar = () => {
                                             onClick={() => {
                                                 setIsUserMenuOpen(false);
                                                 logout();
+                                                navigate('/', { replace: true });
                                             }}
                                             className="flex items-center gap-3 w-full px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 rounded-xl transition-colors font-semibold"
                                         >

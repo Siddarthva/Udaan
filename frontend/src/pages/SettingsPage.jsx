@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { User, Shield, Bell, CreditCard, Lock, Eye, Key } from "lucide-react";
 import { Card, Button, InputField, ToggleSwitch } from "@/components/ui";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { useAuthStore } from "@/store/authStore";
+import toast from "react-hot-toast";
 
 // Helper component for a Settings Section grouping
 const SettingsSection = ({ title, description, children }) => (
@@ -17,10 +19,44 @@ const SettingsSection = ({ title, description, children }) => (
 );
 
 export default function SettingsPage() {
+    const { user, updateProfile } = useAuthStore();
+    const [fullName, setFullName] = useState(user?.name || "");
+    const [email, setEmail] = useState(user?.email || "");
+    const [bio, setBio] = useState(user?.bio || "");
     const [stealthMode, setStealthMode] = useState(false);
     const [discovery, setDiscovery] = useState(true);
     const [twoFactor, setTwoFactor] = useState(false);
     const [alerts, setAlerts] = useState(true);
+
+    const firstName = fullName.split(" ").filter(Boolean).slice(0, -1).join(" ") || fullName;
+    const lastName = fullName.split(" ").filter(Boolean).slice(-1).join(" ");
+
+    const handleFirstNameChange = (value) => {
+        const nextName = [value, lastName].filter(Boolean).join(" ").trim();
+        setFullName(nextName);
+    };
+
+    const handleLastNameChange = (value) => {
+        const nextName = [firstName, value].filter(Boolean).join(" ").trim();
+        setFullName(nextName);
+    };
+
+    const handleSaveProfile = () => {
+        const cleanedName = fullName.trim();
+        const cleanedEmail = email.trim();
+
+        if (!cleanedName || !cleanedEmail) {
+            toast.error("Name and email are required.");
+            return;
+        }
+
+        updateProfile({
+            name: cleanedName,
+            email: cleanedEmail,
+            bio: bio.trim(),
+        });
+        toast.success("Profile updated successfully.");
+    };
 
     return (
         <div className="max-w-[1000px] mx-auto w-full pb-24">
@@ -45,12 +81,13 @@ export default function SettingsPage() {
                     >
                         <div className="grid gap-5">
                             <div className="grid sm:grid-cols-2 gap-5">
-                                <InputField label="First Name" defaultValue="Akshay" />
-                                <InputField label="Last Name" defaultValue="Gambhir" />
+                                <InputField label="First Name" value={firstName} onChange={(e) => handleFirstNameChange(e.target.value)} />
+                                <InputField label="Last Name" value={lastName} onChange={(e) => handleLastNameChange(e.target.value)} />
                             </div>
-                            <InputField label="Email Address" type="email" defaultValue="akshay@example.com" hint="We will email you to verify passing changes." />
+                            <InputField label="Email Address" type="email" value={email} onChange={(e) => setEmail(e.target.value)} hint="We will email you to verify passing changes." />
+                            <InputField label="Bio" value={bio} onChange={(e) => setBio(e.target.value)} placeholder="Tell others what you are building." />
                             <div className="pt-2 flex justify-end">
-                                <Button variant="secondary" size="sm">Update Profile</Button>
+                                <Button variant="secondary" size="sm" onClick={handleSaveProfile}>Update Profile</Button>
                             </div>
                         </div>
 

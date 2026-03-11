@@ -1,12 +1,12 @@
 import React from "react";
-import { useAuth } from "@/features/auth/context/AuthContext";
+import { useAuthStore } from "@/store/authStore";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { Globe, Linkedin, Edit3, Grid, Bookmark, ArrowUpRight, Share2 } from "lucide-react";
 import { GLOBAL_PROJECTS as projectsData } from "@/data/projects";
 
 export default function ProfilePage() {
-    const { user } = useAuth();
+    const { user } = useAuthStore();
 
     const userProjects = projectsData.filter(p => p.founder === user?.name).slice(0, 3);
 
@@ -26,7 +26,7 @@ export default function ProfilePage() {
                         </div>
                         <div className="pb-4 text-[#2F2F2F]">
                             <h1 className="font-serif text-4xl font-bold mb-1 tracking-tight">{user?.name}</h1>
-                            <p className="text-gray-500 font-bold uppercase tracking-widest text-xs">{user?.handle || "@innovator"}</p>
+                            <p className="text-gray-500 font-bold uppercase tracking-widest text-xs">{user?.handle || "@udaan_user"}</p>
                         </div>
                     </div>
                     <div className="pb-4 flex gap-4">
@@ -46,7 +46,7 @@ export default function ProfilePage() {
                     <Card className="p-8 border-none text-[#2F2F2F]">
                         <h3 className="text-xl font-bold mb-6">About</h3>
                         <p className="text-gray-600 leading-relaxed mb-8">
-                            Serial innovator focused on sustainable technologies and next-gen infrastructure. Building the future one node at a time.
+                            {user?.bio || "Add a bio from Settings to personalize your profile."}
                         </p>
                         <div className="space-y-4">
                             <div className="flex items-center gap-3 text-gray-500">

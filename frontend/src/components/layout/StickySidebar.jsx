@@ -1,5 +1,5 @@
 import React from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import {
     LayoutDashboard,
     Briefcase,
@@ -61,6 +61,7 @@ const SidebarItem = ({ to, icon: Icon, label, isCollapsed }) => (
 
 export const StickySidebar = () => {
     const { user, logout } = useAuth();
+    const navigate = useNavigate();
     const { isSidebarOpen, toggleSidebar } = useUIStore();
     const isCollapsed = !isSidebarOpen;
 
@@ -148,7 +149,7 @@ export const StickySidebar = () => {
             {/* Footer */}
             <div className="p-4 border-t border-gray-50 flex flex-col gap-2">
                 <button
-                    onClick={logout}
+                    onClick={() => { logout(); navigate('/', { replace: true }); }}
                     className="flex items-center gap-4 px-4 py-3.5 text-red-500 hover:bg-red-50/50 rounded-2xl transition-all group"
                 >
                     <LogOut size={22} className="shrink-0 transition-transform group-hover:translate-x-1" />

@@ -8,14 +8,14 @@ const AuthContext = createContext(undefined);
  * Restores sessions from localStorage and interacts with the mock AuthService.
  */
 export const AuthProvider = ({ children }) => {
-    const { user, loadUserFromStorage, logout: storeLogout } = useAuthStore();
+    const { user, loadUserFromLocalStorage, logout: storeLogout } = useAuthStore();
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         // Restore auth state from localStorage-backed Zustand store
-        loadUserFromStorage();
+        loadUserFromLocalStorage();
         setLoading(false);
-    }, [loadUserFromStorage]);
+    }, [loadUserFromLocalStorage]);
 
     // Keep the context API compatible, even though actual
     // login/signup flows now use the auth store directly.

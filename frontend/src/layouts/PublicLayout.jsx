@@ -31,7 +31,6 @@ export const PublicLayout = () => {
                     </Link>
 
                     <nav className="hidden md:flex items-center gap-10">
-                        <Link to="/about" className="text-sm font-semibold text-gray-500 hover:text-black transition-colors">About</Link>
                         <Link to="/vision" className="text-sm font-semibold text-gray-500 hover:text-black transition-colors">Vision</Link>
                         <Link to="/pricing" className="text-sm font-semibold text-gray-500 hover:text-black transition-colors">Ecosystem</Link>
                         <Link to="/contact" className="text-sm font-semibold text-gray-500 hover:text-black transition-colors">Support</Link>

@@ -4,6 +4,20 @@ import { persist } from 'zustand/middleware';
 const STORAGE_USER_KEY = 'udaan_user';
 const STORAGE_SESSION_KEY = 'udaan_session';
 
+const buildHandle = (name = '') => `@${name.trim().toLowerCase().replace(/\s+/g, '_') || 'udaan_user'}`;
+
+const normalizeUser = (user = {}) => ({
+    name: user.name || 'User',
+    email: user.email || '',
+    password: user.password || '',
+    role: user.role || 'Innovator',
+    bio:
+        user.bio ||
+        'Builder in the Udaan ecosystem, collaborating on high-impact innovation projects.',
+    avatar: user.avatar || '',
+    handle: user.handle || buildHandle(user.name),
+});
+
 export const useAuthStore = create(
     persist(
         (set, get) => ({
@@ -15,7 +29,7 @@ export const useAuthStore = create(
              * Expects: { name, email, password, role? }
              */
             signup: ({ name, email, password, role = 'Innovator' }) => {
-                const user = { name, email, password, role };
+                const user = normalizeUser({ name, email, password, role });
 
                 // Persist user and session to localStorage
                 try {
@@ -56,7 +70,10 @@ export const useAuthStore = create(
                     throw new Error('Invalid email or password.');
                 }
 
+                const normalizedUser = normalizeUser(storedUser);
+
                 try {
+                    localStorage.setItem(STORAGE_USER_KEY, JSON.stringify(normalizedUser));
                     localStorage.setItem(
                         STORAGE_SESSION_KEY,
                         JSON.stringify({ isAuthenticated: true, email })
@@ -65,8 +82,8 @@ export const useAuthStore = create(
                     console.error('[AUTH]: Failed to persist session', e);
                 }
 
-                set({ user: storedUser, isAuthenticated: true });
-                return storedUser;
+                set({ user: normalizedUser, isAuthenticated: true });
+                return normalizedUser;
             },
 
             /**
@@ -103,24 +120,51 @@ export const useAuthStore = create(
 
                 // Backwards compatibility: handle old mock session shape
                 if (session && session.user && !storedUser) {
-                    set({ user: session.user, isAuthenticated: true });
+                    const legacyUser = normalizeUser(session.user);
+                    try {
+                        localStorage.setItem(STORAGE_USER_KEY, JSON.stringify(legacyUser));
+                        localStorage.setItem(
+                            STORAGE_SESSION_KEY,
+                            JSON.stringify({ isAuthenticated: true, email: legacyUser.email })
+                        );
+                    } catch (e) {
+                        console.error('[AUTH]: Failed to migrate legacy session', e);
+                    }
+                    set({ user: legacyUser, isAuthenticated: true });
                     return;
                 }
 
                 if (session?.isAuthenticated && storedUser?.email) {
-                    set({ user: storedUser, isAuthenticated: true });
+                    const hydratedUser = normalizeUser(storedUser);
+                    set({ user: hydratedUser, isAuthenticated: true });
                 } else {
                     set({ user: null, isAuthenticated: false });
                 }
             },
 
+            // Alias for compatibility with newer naming in feature requirements.
+            loadUserFromLocalStorage: () => {
+                get().loadUserFromStorage();
+            },
+
             /**
              * Update profile fields while keeping existing data.
              */
-            updateProfile: (updates) =>
-                set((state) => ({
-                    user: state.user ? { ...state.user, ...updates } : null,
-                })),
+            updateProfile: (updates) => {
+                const currentUser = get().user;
+                if (!currentUser) return null;
+
+                const updatedUser = normalizeUser({ ...currentUser, ...updates });
+
+                try {
+                    localStorage.setItem(STORAGE_USER_KEY, JSON.stringify(updatedUser));
+                } catch (e) {
+                    console.error('[AUTH]: Failed to persist profile update', e);
+                }
+
+                set({ user: updatedUser });
+                return updatedUser;
+            },
         }),
         {
             name: 'udaan-auth-storage',

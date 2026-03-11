@@ -1,5 +1,5 @@
 import React from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import { LogOut, ChevronLeft, ChevronRight } from "lucide-react";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { useUIStore } from "@/store/uiStore";
@@ -48,6 +48,7 @@ const SidebarItem = ({ to, icon: Icon, label, isCollapsed }) => {
 
 export const RoleSidebar = () => {
     const { user, logout } = useAuth();
+    const navigate = useNavigate();
     const { isSidebarOpen, toggleSidebar } = useUIStore();
     const isCollapsed = !isSidebarOpen;
     const role = user?.role || 'Innovator';
@@ -98,7 +99,7 @@ export const RoleSidebar = () => {
             {/* Footer */}
             <div className="p-3 border-t border-gray-200 flex flex-col gap-1">
                 <button
-                    onClick={logout}
+                    onClick={() => { logout(); navigate('/', { replace: true }); }}
                     className="flex items-center gap-3 px-3 py-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors group w-full text-left"
                 >
                     <LogOut size={18} className="shrink-0" />
