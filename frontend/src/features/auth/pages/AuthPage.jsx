@@ -1,9 +1,10 @@
 import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useForm } from "react-hook-form";
 import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle, Shield, Rocket, Users, Loader2 } from "lucide-react";
 import { Button, Card, InputField } from "../../../components/ui";
-import { useAuth } from "../context/AuthContext";
+import { useAuthStore } from "../../../store/authStore";
 import toast from "react-hot-toast";
 
 /**
@@ -12,39 +13,55 @@ import toast from "react-hot-toast";
  */
 export default function AuthPage() {
     const [role, setRole] = useState("Innovator");
-    const [email, setEmail] = useState("");
-    const [fullName, setFullName] = useState("");
     const [isAuthenticating, setIsAuthenticating] = useState(false);
+    const [mode, setMode] = useState("login"); // "login" | "signup"
 
-    const { login } = useAuth();
+    const { signup, login } = useAuthStore();
     const navigate = useNavigate();
     const location = useLocation();
+
+    const isSignup = mode === "signup";
+
+    const {
+        register,
+        handleSubmit,
+        formState: { errors },
+    } = useForm({
+        defaultValues: {
+            fullName: "",
+            email: "",
+            password: "",
+        },
+    });
 
     // After login, redirect to safe dashboard or the page they intended to visit
     const from = location.state?.from?.pathname || "/dashboard";
 
-    const handleLogin = async (e) => {
-        if (e) e.preventDefault();
-
-        // Basic validation
-        if (!email.includes("@")) {
-            toast.error("Please enter a valid work email.");
-            return;
-        }
-
-        if (!fullName.trim()) {
-            toast.error("Please enter your full name.");
-            return;
-        }
-
+    const onSubmit = async (values) => {
         setIsAuthenticating(true);
         try {
-            await login(email, role, fullName);
-            toast.success(`Welcome, ${fullName}. Authenticated successfully.`);
+            if (isSignup) {
+                // Signup: create user and log them in
+                await signup({
+                    name: values.fullName,
+                    email: values.email,
+                    password: values.password,
+                    role,
+                });
+                toast.success(`Welcome, ${values.fullName}. Your workspace is ready.`);
+            } else {
+                // Login: validate against stored credentials
+                await login({
+                    email: values.email,
+                    password: values.password,
+                });
+                toast.success("Authenticated successfully.");
+            }
+
             navigate(from, { replace: true });
         } catch (error) {
-            toast.error("Internal authentication issue. Please try again.");
-            console.error(error);
+            toast.error(error?.message || "Authentication failed. Please try again.");
+            console.error("[AUTH]:", error);
         } finally {
             setIsAuthenticating(false);
         }
@@ -73,7 +90,29 @@ export default function AuthPage() {
                 </div>
 
                 <Card className="p-8 border-none shadow-2xl shadow-black/5 bg-white">
-                    <form onSubmit={handleLogin} className="space-y-6">
+                    {/* Auth Mode Toggle */}
+                    <div className="flex items-center justify-center mb-6 bg-gray-50 rounded-2xl p-1">
+                        <button
+                            type="button"
+                            onClick={() => setMode("login")}
+                            className={`flex-1 h-10 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${
+                                !isSignup ? "bg-gray-900 text-white" : "text-gray-500 hover:bg-gray-100"
+                            }`}
+                        >
+                            Log In
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setMode("signup")}
+                            className={`flex-1 h-10 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${
+                                isSignup ? "bg-gray-900 text-white" : "text-gray-500 hover:bg-gray-100"
+                            }`}
+                        >
+                            Sign Up
+                        </button>
+                    </div>
+
+                    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                         <div className="space-y-3 mb-8">
                             <p className="text-xs font-black text-gray-400 uppercase tracking-widest pl-1">Primary Role</p>
                             <div className="grid grid-cols-3 gap-2">
@@ -108,27 +147,57 @@ export default function AuthPage() {
                         </div>
 
                         <div className="space-y-4">
-                            <div className="space-y-2">
-                                <label className="text-xs font-black text-gray-400 uppercase tracking-widest pl-1">Full Name</label>
-                                <InputField
-                                    type="text"
-                                    placeholder="John Doe"
-                                    value={fullName}
-                                    onChange={(e) => setFullName(e.target.value)}
-                                    required
-                                    className="h-12 bg-gray-50 border-gray-100 hover:border-gray-300 focus:bg-white text-sm"
-                                />
-                            </div>
+                            {isSignup && (
+                                <div className="space-y-2">
+                                    <label className="text-xs font-black text-gray-400 uppercase tracking-widest pl-1">Full Name</label>
+                                    <InputField
+                                        type="text"
+                                        placeholder="John Doe"
+                                        className="h-12 bg-gray-50 border-gray-100 hover:border-gray-300 focus:bg-white text-sm"
+                                        {...register("fullName", {
+                                            required: isSignup ? "Full name is required" : false,
+                                        })}
+                                    />
+                                    {errors.fullName && (
+                                        <p className="text-[11px] text-red-500 font-medium mt-1">{errors.fullName.message}</p>
+                                    )}
+                                </div>
+                            )}
                             <div className="space-y-2">
                                 <label className="text-xs font-black text-gray-400 uppercase tracking-widest pl-1">Work Email</label>
                                 <InputField
                                     type="email"
                                     placeholder="name@company.com"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    required
                                     className="h-12 bg-gray-50 border-gray-100 hover:border-gray-300 focus:bg-white text-sm"
+                                    {...register("email", {
+                                        required: "Email is required",
+                                        pattern: {
+                                            value: /.+@.+\..+/,
+                                            message: "Please enter a valid email address",
+                                        },
+                                    })}
                                 />
+                                {errors.email && (
+                                    <p className="text-[11px] text-red-500 font-medium mt-1">{errors.email.message}</p>
+                                )}
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs font-black text-gray-400 uppercase tracking-widest pl-1">Password</label>
+                                <InputField
+                                    type="password"
+                                    placeholder="••••••••"
+                                    className="h-12 bg-gray-50 border-gray-100 hover:border-gray-300 focus:bg-white text-sm"
+                                    {...register("password", {
+                                        required: "Password is required",
+                                        minLength: {
+                                            value: 6,
+                                            message: "Password should be at least 6 characters",
+                                        },
+                                    })}
+                                />
+                                {errors.password && (
+                                    <p className="text-[11px] text-red-500 font-medium mt-1">{errors.password.message}</p>
+                                )}
                             </div>
                             <Button
                                 disabled={isAuthenticating}

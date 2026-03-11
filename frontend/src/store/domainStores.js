@@ -2,6 +2,10 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { GLOBAL_PROJECTS } from '../data/projects';
 import { LIFECYCLES } from '../config/platform';
+import { useAuthStore } from './authStore';
+
+// Re-export auth store for legacy imports across the codebase.
+export { useAuthStore };
 
 /**
  * GovernanceStore: Domain state for system auditing, compliance, and institutional oversight.
@@ -127,25 +131,6 @@ export const useIntelligenceStore = create(
             }))
         }),
         { name: 'udaan-intel-storage' }
-    )
-);
-
-/**
- * AuthStore: Global identity and capability state.
- */
-export const useAuthStore = create(
-    persist(
-        (set) => ({
-            user: null,
-            isAuthenticated: false,
-
-            login: (userData) => set({ user: userData, isAuthenticated: true }),
-            logout: () => set({ user: null, isAuthenticated: false }),
-            updateProfile: (updates) => set((state) => ({
-                user: state.user ? { ...state.user, ...updates } : null
-            }))
-        }),
-        { name: 'udaan-auth-storage' }
     )
 );
 /**

@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { Link, NavLink, useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, Bell } from "lucide-react";
-import { useAuth } from "../../features/auth/context/AuthContext";
+import { Menu, X, Bell, LogOut } from "lucide-react";
+import { useAuthStore } from "../../store/authStore";
 import Button from "../ui/Button";
 
 export default function Navbar() {
-    const { user } = useAuth();
+    const { user, isAuthenticated, logout } = useAuthStore();
     const navigate = useNavigate();
     const location = useLocation();
     const [isScrolled, setIsScrolled] = useState(false);
@@ -31,6 +31,11 @@ export default function Navbar() {
     ];
 
     const isDarkMode = location.pathname === "/" && !isScrolled;
+
+    // Only show this Navbar for authenticated sessions
+    if (!isAuthenticated) {
+        return null;
+    }
 
     return (
         <nav
@@ -86,34 +91,40 @@ export default function Navbar() {
 
                 {/* Auth Actions */}
                 <div className="hidden md:flex items-center gap-6">
-                    {!user ? (
-                        <div className="flex items-center gap-4">
-                            <Link
-                                to="/auth"
-                                className={`text-sm font-bold uppercase tracking-widest transition-colors ${isDarkMode ? "text-white/80 hover:text-white" : "text-gray-600 hover:text-black"
-                                    }`}
-                            >
-                                Log In
-                            </Link>
-                            <Button
-                                onClick={() => navigate("/auth")}
-                                className={`px-8 rounded-xl h-12 text-sm font-bold group shadow-lg ${isDarkMode ? "bg-white text-black hover:bg-gray-100" : "bg-[#2F2F2F] text-white hover:scale-105 transition-transform"
-                                    }`}
-                            >
-                                Get Started
-                            </Button>
+                    <div className="flex items-center gap-4">
+                        <Link to="/inbox" className="p-2 relative group">
+                            <Bell size={20} className={isDarkMode ? "text-white" : "text-gray-600"} />
+                            <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full border-2 border-white"></span>
+                        </Link>
+                        <div className="hidden lg:flex flex-col items-end mr-2">
+                            <span className={`text-[11px] font-black uppercase tracking-widest ${isDarkMode ? "text-white/70" : "text-gray-500"}`}>
+                                Welcome
+                            </span>
+                            <span className={isDarkMode ? "text-white text-sm font-semibold" : "text-gray-800 text-sm font-semibold"}>
+                                {user?.name || "User"}
+                            </span>
                         </div>
-                    ) : (
-                        <div className="flex items-center gap-4">
-                            <Link to="/inbox" className="p-2 relative group">
-                                <Bell size={20} className={isDarkMode ? "text-white" : "text-gray-600"} />
-                                <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full border-2 border-white"></span>
-                            </Link>
-                            <div className="h-10 w-10 bg-[#CBD4CE] rounded-xl flex items-center justify-center text-sm font-bold cursor-pointer hover:ring-2 ring-black/10 transition-all overflow-hidden" onClick={() => navigate("/dashboard")}>
-                                <span>{user.name?.[0]}</span>
-                            </div>
+                        <div
+                            className="h-10 w-10 bg-[#CBD4CE] rounded-xl flex items-center justify-center text-sm font-bold cursor-pointer hover:ring-2 ring-black/10 transition-all overflow-hidden"
+                            onClick={() => navigate("/dashboard")}
+                        >
+                            <span>{user?.name?.[0]}</span>
                         </div>
-                    )}
+                        <button
+                            onClick={() => {
+                                logout();
+                                navigate("/", { replace: true });
+                            }}
+                            className={`flex items-center gap-2 px-4 h-10 rounded-xl text-xs font-bold uppercase tracking-widest border transition-all ${
+                                isDarkMode
+                                    ? "border-white/30 text-white/80 hover:bg-white/10"
+                                    : "border-gray-200 text-gray-700 hover:bg-gray-100"
+                            }`}
+                        >
+                            <LogOut size={14} />
+                            Logout
+                        </button>
+                    </div>
                 </div>
 
                 {/* Mobile Toggle */}
@@ -148,11 +159,7 @@ export default function Navbar() {
                                     {link.name}
                                 </Link>
                             ))}
-                            {!user ? (
-                                <Button onClick={() => navigate("/auth")} className="w-full h-14 rounded-xl">Get Started</Button>
-                            ) : (
-                                <Button onClick={() => navigate("/dashboard")} className="w-full h-14 rounded-xl">Dashboard</Button>
-                            )}
+                            <Button onClick={() => navigate("/dashboard")} className="w-full h-14 rounded-xl">Dashboard</Button>
                         </div>
                     </motion.div>
                 )}

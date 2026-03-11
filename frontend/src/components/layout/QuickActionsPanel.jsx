@@ -1,6 +1,6 @@
 import React from "react";
 import { Plus, Zap, Heart, MessageSquare, Search, FileText } from "lucide-react";
-import { useAuthStore } from "../../store/domainStores";
+import { useAuthStore } from "@/store/authStore";
 import { useUIStore } from "../../store/uiStore";
 import { Card } from "../ui";
 import toast from "react-hot-toast";

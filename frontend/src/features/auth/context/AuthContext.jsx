@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import authService from "../../../services/authService";
+import { useAuthStore } from "../../../store/authStore";
 
 const AuthContext = createContext(undefined);
 
@@ -8,57 +8,27 @@ const AuthContext = createContext(undefined);
  * Restores sessions from localStorage and interacts with the mock AuthService.
  */
 export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(null);
+    const { user, loadUserFromStorage, logout: storeLogout } = useAuthStore();
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const restoreSession = async () => {
-            try {
-                const session = await authService.getCurrentUser();
-                if (session && session.user) {
-                    setUser(session.user);
-                }
-            } catch (e) {
-                console.error("[AUTH]: Session restoration failed", e);
-            } finally {
-                setLoading(false);
-            }
-        };
-        restoreSession();
-    }, []);
+        // Restore auth state from localStorage-backed Zustand store
+        loadUserFromStorage();
+        setLoading(false);
+    }, [loadUserFromStorage]);
 
-    const login = async (email, role, fullName) => {
-        setLoading(true);
-        try {
-            const session = await authService.login(email, role, fullName);
-            setUser(session.user);
-            return session;
-        } catch (error) {
-            throw error;
-        } finally {
-            setLoading(false);
-        }
+    // Keep the context API compatible, even though actual
+    // login/signup flows now use the auth store directly.
+    const login = async () => {
+        console.warn("[AuthContext]: login is now handled via the auth store and AuthPage forms.");
     };
 
     const logout = async () => {
-        setLoading(true);
-        try {
-            await authService.logout();
-            setUser(null);
-        } finally {
-            setLoading(false);
-        }
+        storeLogout();
     };
 
-    const register = async (userData) => {
-        setLoading(true);
-        try {
-            const session = await authService.register(userData);
-            setUser(session.user);
-            return session;
-        } finally {
-            setLoading(false);
-        }
+    const register = async () => {
+        console.warn("[AuthContext]: register is now handled via the auth store and AuthPage forms.");
     };
 
     return (
