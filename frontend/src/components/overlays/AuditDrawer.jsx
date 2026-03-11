@@ -1,8 +1,8 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { X, Shield, Clock, User, CheckCircle2, AlertCircle } from 'lucide-react';
-import { useGovernanceStore } from '../../store/domainStores';
-import { Badge, Button } from '../ui';
+import { useGovernanceStore } from '@/store/domainStores';
+import { Badge, Button } from '@/components/ui';
 
 export default function AuditDrawer({ onClose }) {
     const { auditLogs } = useGovernanceStore();

@@ -28,11 +28,11 @@ import {
     ShieldCheck
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Card, Button, Badge, Skeleton, EmptyState } from "../../../components/ui";
-import { useUIStore } from "../../../store/uiStore";
-import { FUNDING_PIPELINE } from "../../../data/fundingPipeline";
-import { SPONSOR_STATS } from "../../../data/sponsorProjects";
-import { AnimatedSection, StaggerContainer } from "../../../components/animation/MotionSystem";
+import { Card, Button, Badge, Skeleton, EmptyState } from "@/components/ui";
+import { useUIStore } from "@/store/uiStore";
+import { FUNDING_PIPELINE } from "@/data/fundingPipeline";
+import { SPONSOR_STATS } from "@/data/sponsorProjects";
+import { AnimatedSection, StaggerContainer } from "@/components/animation/MotionSystem";
 import toast from "react-hot-toast";
 
 /**

@@ -1,9 +1,9 @@
 import React from "react";
-import { useAuth } from "../../auth/context/AuthContext";
-import Card from "../../../components/ui/Card";
-import Button from "../../../components/ui/Button";
+import { useAuth } from "@/features/auth/context/AuthContext";
+import Card from "@/components/ui/Card";
+import Button from "@/components/ui/Button";
 import { Globe, Linkedin, Edit3, Grid, Bookmark, ArrowUpRight, Share2 } from "lucide-react";
-import projectsData from "../../../data/projects";
+import { GLOBAL_PROJECTS as projectsData } from "@/data/projects";
 
 export default function ProfilePage() {
     const { user } = useAuth();

@@ -22,8 +22,8 @@ import {
     BookOpen,
     FileText
 } from "lucide-react";
-import { useAuth } from "../../features/auth/context/AuthContext";
-import { useUIStore } from "../../store/uiStore";
+import { useAuth } from "@/features/auth/context/AuthContext";
+import { useUIStore } from "@/store/uiStore";
 import { motion, AnimatePresence } from "framer-motion";
 
 const SidebarItem = ({ to, icon: Icon, label, isCollapsed }) => (

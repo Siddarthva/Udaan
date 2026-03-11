@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import Card from "../../../components/ui/Card";
-import Button from "../../../components/ui/Button";
+import Card from "@/components/ui/Card";
+import Button from "@/components/ui/Button";
 import { Search, Send, MoreVertical, Phone, Video, Info, Paperclip, Smile, MessageSquare } from "lucide-react";
 
 // Mock Data within feature for now

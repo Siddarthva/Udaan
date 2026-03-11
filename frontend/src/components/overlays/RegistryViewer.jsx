@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { X, Database, Search, Filter, ShieldCheck, Users, Briefcase, BadgeDollarSign, ArrowUpRight } from 'lucide-react';
-import { useUIStore } from '../../store/uiStore';
-import { useProjectStore, useFundingStore, useAuthStore } from '../../store/domainStores';
-import { Badge, InputField, Card } from '../ui';
+import { useUIStore } from '@/store/uiStore';
+import { useProjectStore, useFundingStore, useAuthStore } from '@/store/domainStores';
+import { Badge, InputField, Card } from '@/components/ui';
 
 export default function RegistryViewer() {
     const { closeOverlay, openOverlay } = useUIStore();

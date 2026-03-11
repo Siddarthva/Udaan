@@ -1,9 +1,9 @@
 import React from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import Navbar from "../components/layout/Navbar";
-import MobileBottomNav from "../components/layout/MobileBottomNav";
-import { ScrollProgressBar, PageContainer } from "../components/layout/LayoutPrimitives";
+import Navbar from "@/components/layout/Navbar";
+import MobileBottomNav from "@/components/layout/MobileBottomNav";
+import { ScrollProgressBar, PageContainer } from "@/components/layout/LayoutPrimitives";
 
 const PageTransition = ({ children }) => {
     const location = useLocation();

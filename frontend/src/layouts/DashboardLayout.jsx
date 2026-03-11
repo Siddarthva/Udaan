@@ -1,9 +1,9 @@
 import React from "react";
 import { Outlet } from "react-router-dom";
-import { StickySidebar } from "../components/layout/StickySidebar";
-import { StickyHeader } from "../components/layout/StickyHeader";
-import { PageContainer, ScrollProgressBar } from "../components/layout/LayoutPrimitives";
-import { useUIStore } from "../store/uiStore";
+import { StickySidebar } from "@/components/layout/StickySidebar";
+import { StickyHeader } from "@/components/layout/StickyHeader";
+import { PageContainer, ScrollProgressBar } from "@/components/layout/LayoutPrimitives";
+import { useUIStore } from "@/store/uiStore";
 import { motion, AnimatePresence } from "framer-motion";
 
 const DashboardLayout = () => {

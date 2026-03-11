@@ -2,14 +2,14 @@ import React, { Suspense, lazy } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 
 // Layouts
-import { PublicLayout } from "../layouts/PublicLayout";
-import { AppShell } from "../components/layout/AppShell";
+import { PublicLayout } from "@/layouts/PublicLayout";
+import { AppShell } from "@/components/layout/AppShell";
 
 // Route Guards
-import { ProtectedRoute, PublicRoute, RoleBasedGuard } from "../components/auth/RouteGuards";
+import { ProtectedRoute, PublicRoute, RoleBasedGuard } from "@/components/auth/RouteGuards";
 
 // Components
-import LoadingScreen from "../components/common/LoadingScreen";
+import LoadingScreen from "@/components/common/LoadingScreen";
 
 // Lazy Loaded Feature Pages
 const LandingPage = lazy(() => import("../pages/LandingPage"));

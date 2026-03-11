@@ -1,10 +1,10 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
 import { LogOut, ChevronLeft, ChevronRight } from "lucide-react";
-import { useAuth } from "../../features/auth/context/AuthContext";
-import { useUIStore } from "../../store/uiStore";
+import { useAuth } from "@/features/auth/context/AuthContext";
+import { useUIStore } from "@/store/uiStore";
 import { motion, AnimatePresence } from "framer-motion";
-import { ROLE_NAVIGATION } from "../../config/roles";
+import { ROLE_NAVIGATION } from "@/config/roles";
 
 const SidebarItem = ({ to, icon: Icon, label, isCollapsed }) => {
     return (

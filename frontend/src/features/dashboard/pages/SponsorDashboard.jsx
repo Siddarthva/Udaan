@@ -22,13 +22,13 @@ import {
     Search
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Card, Button, Badge, Skeleton } from "../../../components/ui";
-import { useAuthStore } from "../../../store/domainStores";
-import { useUIStore } from "../../../store/uiStore";
-import { GLOBAL_PROJECTS } from "../../../data/projects";
-import { PORTFOLIO_HEALTH } from "../../../data/portfolio";
-import { CAPITAL_LIFECYCLE } from "../../../data/portfolio";
-import { AnimatedSection, StaggerContainer } from "../../../components/animation/MotionSystem";
+import { Card, Button, Badge, Skeleton } from "@/components/ui";
+import { useAuthStore } from "@/store/domainStores";
+import { useUIStore } from "@/store/uiStore";
+import { GLOBAL_PROJECTS } from "@/data/projects";
+import { PORTFOLIO_HEALTH } from "@/data/portfolio";
+import { CAPITAL_LIFECYCLE } from "@/data/portfolio";
+import { AnimatedSection, StaggerContainer } from "@/components/animation/MotionSystem";
 import toast from "react-hot-toast";
 
 /**

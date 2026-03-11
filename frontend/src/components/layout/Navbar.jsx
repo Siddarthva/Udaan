@@ -2,8 +2,8 @@ import React, { useState, useEffect } from "react";
 import { Link, NavLink, useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, Bell, LogOut } from "lucide-react";
-import { useAuthStore } from "../../store/authStore";
-import Button from "../ui/Button";
+import { useAuthStore } from "@/store/authStore";
+import Button from "@/components/ui/Button";
 
 export default function Navbar() {
     const { user, isAuthenticated, logout } = useAuthStore();

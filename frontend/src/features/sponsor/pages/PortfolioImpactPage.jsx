@@ -33,12 +33,12 @@ import {
     Briefcase
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Card, Button, Badge, Skeleton, EmptyState, InputField } from "../../../components/ui";
-import { PORTFOLIO_HEALTH, INVESTMENT_POSITIONS, CAPITAL_LIFECYCLE } from "../../../data/portfolio";
-import { LEDGER_RECORDS, FINANCIAL_REPORTS } from "../../../data/ledger";
-import { IMPACT_METRICS, RISK_INDEX } from "../../../data/impact";
-import { AnimatedSection, StaggerContainer } from "../../../components/animation/MotionSystem";
-import { useUIStore } from "../../../store/uiStore";
+import { Card, Button, Badge, Skeleton, EmptyState, InputField } from "@/components/ui";
+import { PORTFOLIO_HEALTH, INVESTMENT_POSITIONS, CAPITAL_LIFECYCLE } from "@/data/portfolio";
+import { LEDGER_RECORDS, FINANCIAL_REPORTS } from "@/data/ledger";
+import { IMPACT_METRICS, RISK_INDEX } from "@/data/impact";
+import { AnimatedSection, StaggerContainer } from "@/components/animation/MotionSystem";
+import { useUIStore } from "@/store/uiStore";
 import toast from "react-hot-toast";
 
 /**

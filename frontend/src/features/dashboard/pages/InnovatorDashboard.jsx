@@ -17,10 +17,10 @@ import {
     Briefcase
 } from "lucide-react";
 import { motion } from "framer-motion";
-import { Card, Button, Badge, Skeleton, EmptyState } from "../../../components/ui";
-import { useProjectStore, useIntelligenceStore, useAuthStore } from "../../../store/domainStores";
-import { useUIStore } from "../../../store/uiStore";
-import { AnimatedSection } from "../../../components/animation/MotionSystem";
+import { Card, Button, Badge, Skeleton, EmptyState } from "@/components/ui";
+import { useProjectStore, useIntelligenceStore, useAuthStore } from "@/store/domainStores";
+import { useUIStore } from "@/store/uiStore";
+import { AnimatedSection } from "@/components/animation/MotionSystem";
 import toast from "react-hot-toast";
 
 const NOTIFICATIONS = [

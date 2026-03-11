@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Search, Bell, Menu, User, LogOut, Settings, HelpCircle, LayoutGrid, CheckSquare, Plus } from "lucide-react";
-import { useAuthStore } from "../../store/domainStores";
-import { useUIStore } from "../../store/uiStore";
-import { RoleBadge } from "../role/RoleBadge";
-import { InputField } from "../ui";
+import { useAuthStore } from "@/store/domainStores";
+import { useUIStore } from "@/store/uiStore";
+import { RoleBadge } from "@/components/role/RoleBadge";
+import { InputField } from "@/components/ui";
 import { QuickActionsPanel } from "./QuickActionsPanel";
 import { motion, AnimatePresence } from "framer-motion";
 

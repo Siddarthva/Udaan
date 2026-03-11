@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Rocket, Shield, Users, ArrowRight } from "lucide-react";
-import Button from "../ui/Button";
+import Button from "@/components/ui/Button";
 import { useNavigate } from "react-router-dom";
 
 export const RoleLandingSection = () => {

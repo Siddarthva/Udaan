@@ -1,9 +1,9 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { X, Globe, MapPin, Zap, Target, ShieldCheck, Activity } from 'lucide-react';
-import { useUIStore } from '../../store/uiStore';
-import { useProjectStore } from '../../store/domainStores';
-import { Badge, Button } from '../ui';
+import { useUIStore } from '@/store/uiStore';
+import { useProjectStore } from '@/store/domainStores';
+import { Badge, Button } from '@/components/ui';
 
 export default function ImpactMap() {
     const { closeOverlay } = useUIStore();

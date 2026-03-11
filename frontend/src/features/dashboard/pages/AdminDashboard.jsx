@@ -20,10 +20,10 @@ import {
     FileText
 } from "lucide-react";
 import { motion } from "framer-motion";
-import { Card, Button, Badge, Skeleton, InputField } from "../../../components/ui";
-import { useProjectStore, useIntelligenceStore, useFundingStore, useAuthStore } from "../../../store/domainStores";
-import { useUIStore } from "../../../store/uiStore";
-import { AnimatedSection } from "../../../components/animation/MotionSystem";
+import { Card, Button, Badge, Skeleton, InputField } from "@/components/ui";
+import { useProjectStore, useIntelligenceStore, useFundingStore, useAuthStore } from "@/store/domainStores";
+import { useUIStore } from "@/store/uiStore";
+import { AnimatedSection } from "@/components/animation/MotionSystem";
 
 /**
  * AdminDashboard: Institutional Governance & Ecosystem Control.

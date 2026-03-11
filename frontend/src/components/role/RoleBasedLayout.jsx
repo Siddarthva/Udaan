@@ -2,8 +2,8 @@ import React from "react";
 import { Outlet } from "react-router-dom";
 import { RoleSidebar } from "./RoleSidebar";
 import { RoleMobileNav } from "./RoleMobileNav";
-import { StickyHeader } from "../layout/StickyHeader";
-import { useUIStore } from "../../store/uiStore";
+import { StickyHeader } from "@/components/layout/StickyHeader";
+import { useUIStore } from "@/store/uiStore";
 import { motion, AnimatePresence } from "framer-motion";
 
 export const RoleBasedLayout = () => {

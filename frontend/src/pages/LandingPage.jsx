@@ -2,10 +2,10 @@ import React, { useRef, useEffect } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { Button, Card } from "../components/ui";
+import { Button, Card } from "@/components/ui";
 import { ArrowRight, Zap, Shield, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { RoleLandingSection } from "../components/role/RoleLandingSection";
+import { RoleLandingSection } from "@/components/role/RoleLandingSection";
 
 gsap.registerPlugin(ScrollTrigger);
 

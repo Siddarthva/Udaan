@@ -18,9 +18,9 @@ import {
     Plus
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useAuthStore } from '../../store/domainStores';
-import { useUIStore } from '../../store/uiStore';
-import { DOMAIN_ROUTES } from '../../config/platform';
+import { useAuthStore } from '@/store/domainStores';
+import { useUIStore } from '@/store/uiStore';
+import { DOMAIN_ROUTES } from '@/config/platform';
 
 /**
  * CommandBar: A FAANG-level spotlight search and global action palette.

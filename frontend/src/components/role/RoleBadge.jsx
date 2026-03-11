@@ -1,5 +1,5 @@
 import React from "react";
-import { ROLE_THEME } from "../../config/roles";
+import { ROLE_THEME } from "@/config/roles";
 import { Rocket, Target, Heart } from "lucide-react";
 
 const ROLE_ICONS = {

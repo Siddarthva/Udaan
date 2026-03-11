@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { Search, Bell, Menu } from "lucide-react";
-import { useAuth } from "../../features/auth/context/AuthContext";
-import { useUIStore } from "../../store/uiStore";
-import { RoleBadge } from "../role/RoleBadge";
-import { InputField } from "../ui";
+import { useAuth } from "@/features/auth/context/AuthContext";
+import { useUIStore } from "@/store/uiStore";
+import { RoleBadge } from "@/components/role/RoleBadge";
+import { InputField } from "@/components/ui";
 
 export const StickyHeader = () => {
     const { user } = useAuth();

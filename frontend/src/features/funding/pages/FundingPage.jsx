@@ -18,9 +18,9 @@ import {
     Briefcase
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Card, Button, Badge, InputField, Skeleton, EmptyState } from "../../../components/ui";
-import { AnimatedSection, StaggerContainer } from "../../../components/animation/MotionSystem";
-import { FUNDING_OPPORTUNITIES } from "../../../data/fundingOpportunities";
+import { Card, Button, Badge, InputField, Skeleton, EmptyState } from "@/components/ui";
+import { AnimatedSection, StaggerContainer } from "@/components/animation/MotionSystem";
+import { FUNDING_OPPORTUNITIES } from "@/data/fundingOpportunities";
 import toast from "react-hot-toast";
 
 /**

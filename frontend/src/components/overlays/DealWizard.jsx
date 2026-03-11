@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, BadgeDollarSign, LayoutGrid, ScrollText, CalendarDays, CheckCircle2, ChevronRight, ChevronLeft, ArrowRight } from 'lucide-react';
-import { useUIStore } from '../../store/uiStore';
-import { useProjectStore, useFundingStore, useGovernanceStore } from '../../store/domainStores';
-import { Button, Badge, InputField } from '../ui';
+import { useUIStore } from '@/store/uiStore';
+import { useProjectStore, useFundingStore, useGovernanceStore } from '@/store/domainStores';
+import { Button, Badge, InputField } from '@/components/ui';
 import toast from 'react-hot-toast';
 
 const STEPS = [

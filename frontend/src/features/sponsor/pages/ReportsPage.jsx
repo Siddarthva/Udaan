@@ -32,10 +32,10 @@ import {
     CheckSquare
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Card, Button, Badge, InputField, Skeleton, EmptyState } from "../../../components/ui";
-import { STRATEGIC_DOSSIERS, INTEL_ALERTS, INTEL_REQUESTS } from "../../../data/dossiers";
-import { AnimatedSection, StaggerContainer } from "../../../components/animation/MotionSystem";
-import { useUIStore } from "../../../store/uiStore";
+import { Card, Button, Badge, InputField, Skeleton, EmptyState } from "@/components/ui";
+import { STRATEGIC_DOSSIERS, INTEL_ALERTS, INTEL_REQUESTS } from "@/data/dossiers";
+import { AnimatedSection, StaggerContainer } from "@/components/animation/MotionSystem";
+import { useUIStore } from "@/store/uiStore";
 import toast from "react-hot-toast";
 
 /**

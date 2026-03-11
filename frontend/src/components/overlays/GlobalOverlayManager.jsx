@@ -1,6 +1,6 @@
 import React from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { useUIStore } from '../../store/uiStore';
+import { useUIStore } from '@/store/uiStore';
 import AuditDrawer from './AuditDrawer';
 import DossierViewer from './DossierViewer';
 import ScenarioSimulator from './ScenarioSimulator';

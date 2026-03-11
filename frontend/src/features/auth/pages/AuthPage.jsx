@@ -3,8 +3,8 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle, Shield, Rocket, Users, Loader2 } from "lucide-react";
-import { Button, Card, InputField } from "../../../components/ui";
-import { useAuthStore } from "../../../store/authStore";
+import { Button, Card, InputField } from "@/components/ui";
+import { useAuthStore } from "@/store/authStore";
 import toast from "react-hot-toast";
 
 /**

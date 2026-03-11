@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { X, FileSearch, Download, Share2, ShieldCheck, Zap, Target, Activity } from 'lucide-react';
-import { Badge, Button, Card } from '../ui';
+import { Badge, Button, Card } from '@/components/ui';
 
 export default function DossierViewer({ data, onClose }) {
     if (!data) return null;

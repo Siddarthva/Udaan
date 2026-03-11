@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { X, Calendar, Clock, Video, BookOpen, Users, CheckCircle2, AlertCircle } from 'lucide-react';
-import { useCollaborationStore } from '../../store/domainStores';
-import { Badge, Button } from '../ui';
+import { useCollaborationStore } from '@/store/domainStores';
+import { Badge, Button } from '@/components/ui';
 import toast from 'react-hot-toast';
 
 export default function SessionScheduler({ data, onClose }) {

@@ -1,5 +1,5 @@
 import React from "react";
-import { useAuth } from "../../features/auth/context/AuthContext";
+import { useAuth } from "@/features/auth/context/AuthContext";
 
 export const PermissionWrapper = ({ allowedRoles, children, fallback = null }) => {
     const { user } = useAuth();

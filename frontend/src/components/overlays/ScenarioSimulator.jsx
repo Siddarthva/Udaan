@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Zap, TrendingUp, TrendingDown, Target, Activity, ShieldCheck, PieChart } from 'lucide-react';
-import { Button, Card, Badge } from '../ui';
+import { Button, Card, Badge } from '@/components/ui';
 
 export default function ScenarioSimulator({ onClose }) {
     const [marketShift, setMarketShift] = useState(0);

@@ -1,8 +1,8 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
 import { motion } from "framer-motion";
-import { useAuth } from "../../features/auth/context/AuthContext";
-import { ROLE_NAVIGATION, ROLE_THEME } from "../../config/roles";
+import { useAuth } from "@/features/auth/context/AuthContext";
+import { ROLE_NAVIGATION, ROLE_THEME } from "@/config/roles";
 
 const NavItem = ({ to, icon: Icon, label, themeClass }) => {
     return (

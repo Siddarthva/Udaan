@@ -31,11 +31,11 @@ import {
     Globe2
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Card, Button, Badge, InputField } from "../../../components/ui";
+import { Card, Button, Badge, InputField } from "@/components/ui";
 import toast from "react-hot-toast";
 
-import { useFundingStore, useProjectStore, useIntelligenceStore } from "../../../store/domainStores";
-import { LIFECYCLES } from "../../../config/platform";
+import { useFundingStore, useProjectStore, useIntelligenceStore } from "@/store/domainStores";
+import { LIFECYCLES } from "@/config/platform";
 
 /**
  * DealWorkflow: A multi-step stepper for institutional investment management.

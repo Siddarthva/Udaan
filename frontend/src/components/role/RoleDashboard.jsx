@@ -1,6 +1,6 @@
 import React, { Suspense, lazy } from "react";
-import { useAuth } from "../../features/auth/context/AuthContext";
-import LoadingScreen from "../common/LoadingScreen";
+import { useAuth } from "@/features/auth/context/AuthContext";
+import LoadingScreen from "@/components/common/LoadingScreen";
 
 // Lazy load role-specific dashboards to conserve performance
 const InnovatorDashboard = lazy(() => import("../../features/dashboard/pages/InnovatorDashboard"));

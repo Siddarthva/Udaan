@@ -1,11 +1,11 @@
 import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import Card from "../../../components/ui/Card";
-import Button from "../../../components/ui/Button";
+import Card from "@/components/ui/Card";
+import Button from "@/components/ui/Button";
 import { Flame, Search, Filter, ArrowUpRight, Grid3X3, List } from "lucide-react";
-import projectsData from "../../../data/projects";
-import { AnimatedSection, StaggerContainer } from "../../../components/animation/MotionSystem";
-import { useUIStore } from "../../../store/uiStore";
+import { GLOBAL_PROJECTS as projectsData } from "@/data/projects";
+import { AnimatedSection, StaggerContainer } from "@/components/animation/MotionSystem";
+import { useUIStore } from "@/store/uiStore";
 
 export default function ProjectsPage() {
     const { openOverlay } = useUIStore();

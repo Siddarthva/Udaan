@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { RoleSidebar } from "../role/RoleSidebar";
+import { RoleSidebar } from "@/components/role/RoleSidebar";
 import { TopNavigationBar } from "./TopNavigationBar";
 import { CommandBar } from "./CommandBar";
-import { useUIStore } from "../../store/uiStore";
+import { useUIStore } from "@/store/uiStore";
 import { motion, AnimatePresence } from "framer-motion";
 import { Outlet } from "react-router-dom";
-import GlobalOverlayManager from "../overlays/GlobalOverlayManager";
+import GlobalOverlayManager from "@/components/overlays/GlobalOverlayManager";
 
 /**
  * AppShell: The persistent SaaS layout for authenticated users.

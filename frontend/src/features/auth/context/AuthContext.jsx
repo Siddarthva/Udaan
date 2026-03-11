@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { useAuthStore } from "../../../store/authStore";
+import { useAuthStore } from "@/store/authStore";
 
 const AuthContext = createContext(undefined);
 

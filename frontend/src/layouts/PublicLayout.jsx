@@ -1,9 +1,9 @@
 import React from "react";
 import { Outlet, useLocation, Link, Navigate } from "react-router-dom";
-import { useAuth } from "../features/auth/context/AuthContext";
+import { useAuth } from "@/features/auth/context/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, Menu } from "lucide-react";
-import { Button } from "../components/ui";
+import { Button } from "@/components/ui";
 
 /**
  * PublicLayout: The high-conversion marketing shell for non-authenticated users.

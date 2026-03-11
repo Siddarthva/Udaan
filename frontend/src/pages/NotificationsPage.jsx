@@ -1,8 +1,8 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { Bell, Zap, MessageSquare, Target, UserPlus } from "lucide-react";
-import Card from "../components/ui/Card";
-import Button from "../components/ui/Button";
+import Card from "@/components/ui/Card";
+import Button from "@/components/ui/Button";
 
 const MOCK_NOTIFS = [
     { id: 1, type: "funding", title: "New Funding Milestone", desc: "EcoSphere just hit 50% of their funding goal!", time: "2m ago", icon: Target, color: "text-blue-600 bg-blue-50" },

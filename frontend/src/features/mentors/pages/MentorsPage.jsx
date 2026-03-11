@@ -20,9 +20,9 @@ import {
     ArrowUpRight
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Card, Button, Badge, InputField, Skeleton, EmptyState, Modal } from "../../../components/ui";
-import { AnimatedSection, StaggerContainer } from "../../../components/animation/MotionSystem";
-import { MENTORS } from "../../../data/mentors";
+import { Card, Button, Badge, InputField, Skeleton, EmptyState, Modal } from "@/components/ui";
+import { AnimatedSection, StaggerContainer } from "@/components/animation/MotionSystem";
+import { MENTORS } from "@/data/mentors";
 import toast from "react-hot-toast";
 
 /**

@@ -23,9 +23,9 @@ import {
     Link as LinkIcon
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Card, Button, Badge, InputField, Skeleton, EmptyState } from "../../../components/ui";
-import { CONTRIBUTE_PROJECTS } from "../../../data/contributeProjects";
-import { AnimatedSection, StaggerContainer } from "../../../components/animation/MotionSystem";
+import { Card, Button, Badge, InputField, Skeleton, EmptyState } from "@/components/ui";
+import { CONTRIBUTE_PROJECTS } from "@/data/contributeProjects";
+import { AnimatedSection, StaggerContainer } from "@/components/animation/MotionSystem";
 import toast from "react-hot-toast";
 
 /**

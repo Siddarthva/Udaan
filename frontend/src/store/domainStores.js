@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { GLOBAL_PROJECTS } from '../data/projects';
-import { LIFECYCLES } from '../config/platform';
+import { GLOBAL_PROJECTS } from '@/data/projects';
+import { LIFECYCLES } from '@/config/platform';
 import { useAuthStore } from './authStore';
 
 // Re-export auth store for legacy imports across the codebase.

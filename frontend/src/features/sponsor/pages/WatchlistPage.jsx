@@ -27,12 +27,12 @@ import {
     ArrowRight
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Card, Button, Badge, InputField, Skeleton, EmptyState } from "../../../components/ui";
-import { WATCHLIST } from "../../../data/watchlist";
-import { SPONSOR_STATS } from "../../../data/sponsorProjects";
-import { AnimatedSection, StaggerContainer } from "../../../components/animation/MotionSystem";
-import { useUIStore } from "../../../store/uiStore";
-import DealWorkflow from "../components/DealWorkflow";
+import { Card, Button, Badge, InputField, Skeleton, EmptyState } from "@/components/ui";
+import { WATCHLIST } from "@/data/watchlist";
+import { SPONSOR_STATS } from "@/data/sponsorProjects";
+import { AnimatedSection, StaggerContainer } from "@/components/animation/MotionSystem";
+import { useUIStore } from "@/store/uiStore";
+import DealWorkflow from "@/features/sponsor/components/DealWorkflow";
 import toast from "react-hot-toast";
 
 /**

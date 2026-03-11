@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { User, Shield, Bell, CreditCard, Lock, Eye, Key } from "lucide-react";
-import { Card, Button, InputField, ToggleSwitch } from "../components/ui";
-import { PageHeader } from "../components/layout/PageHeader";
+import { Card, Button, InputField, ToggleSwitch } from "@/components/ui";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 // Helper component for a Settings Section grouping
 const SettingsSection = ({ title, description, children }) => (

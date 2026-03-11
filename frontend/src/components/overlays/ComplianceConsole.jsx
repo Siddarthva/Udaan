@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { X, ShieldCheck, Activity, AlertCircle, FileText, Download, CheckCircle2, Zap, BarChart3, TrendingUp } from 'lucide-react';
-import { useUIStore } from '../../store/uiStore';
-import { useGovernanceStore } from '../../store/domainStores';
-import { Badge, Button, Card } from '../ui';
+import { useUIStore } from '@/store/uiStore';
+import { useGovernanceStore } from '@/store/domainStores';
+import { Badge, Button, Card } from '@/components/ui';
 import toast from 'react-hot-toast';
 
 export default function ComplianceConsole() {

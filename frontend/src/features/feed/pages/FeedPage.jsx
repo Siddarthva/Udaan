@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import Card from "../../../components/ui/Card";
-import Button from "../../../components/ui/Button";
+import Card from "@/components/ui/Card";
+import Button from "@/components/ui/Button";
 import { MessageSquare, Heart, Share2, MoreHorizontal, Plus } from "lucide-react";
-import postsData from "../../../data/feedPosts";
+import postsData from "@/data/feedPosts";
 
 export default function FeedPage() {
     const [activeFilter, setActiveFilter] = useState("All");

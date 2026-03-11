@@ -1,10 +1,10 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { useAuth } from "../../auth/context/AuthContext";
-import Card from "../../../components/ui/Card";
-import Button from "../../../components/ui/Button";
+import { useAuth } from "@/features/auth/context/AuthContext";
+import Card from "@/components/ui/Card";
+import Button from "@/components/ui/Button";
 import { TrendingUp, Target, ArrowUpRight, Zap, Users, Plus, LayoutGrid, Calendar } from "lucide-react";
-import { AnimatedSection, StaggerContainer } from "../../../components/animation/MotionSystem";
+import { AnimatedSection, StaggerContainer } from "@/components/animation/MotionSystem";
 
 const StatCard = ({ label, val, icon: Icon, color, delay }) => (
     <AnimatedSection delay={delay} direction="up" className="h-full">

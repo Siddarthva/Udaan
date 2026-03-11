@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, SearchCode, Target, ListTodo, Calendar, Rocket, ChevronRight, ChevronLeft, CheckCircle2 } from 'lucide-react';
-import { useUIStore } from '../../store/uiStore';
-import { useProjectStore, useTaskStore, useGovernanceStore } from '../../store/domainStores';
-import { Button, Badge } from '../ui';
+import { useUIStore } from '@/store/uiStore';
+import { useProjectStore, useTaskStore, useGovernanceStore } from '@/store/domainStores';
+import { Button, Badge } from '@/components/ui';
 import toast from 'react-hot-toast';
 
 const STEPS = [

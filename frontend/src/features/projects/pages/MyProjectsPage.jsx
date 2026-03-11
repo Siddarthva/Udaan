@@ -23,11 +23,11 @@ import {
     MoreVertical
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Card, Button, Badge, Skeleton, EmptyState } from "../../../components/ui";
-import { useUIStore } from "../../../store/uiStore";
-import { MY_PROJECTS, MY_PORTFOLIO_STATS } from "../../../data/myProjects";
-import { AnimatedSection, StaggerContainer } from "../../../components/animation/MotionSystem";
-import { useProjectStore, useIntelligenceStore, useAuthStore } from "../../../store/domainStores";
+import { Card, Button, Badge, Skeleton, EmptyState } from "@/components/ui";
+import { useUIStore } from "@/store/uiStore";
+import { MY_PROJECTS, MY_PORTFOLIO_STATS } from "@/data/myProjects";
+import { AnimatedSection, StaggerContainer } from "@/components/animation/MotionSystem";
+import { useProjectStore, useIntelligenceStore, useAuthStore } from "@/store/domainStores";
 import toast from "react-hot-toast";
 
 /**

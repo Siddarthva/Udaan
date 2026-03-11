@@ -21,14 +21,14 @@ import {
     AlertCircle
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Card, Button, Badge, InputField, Skeleton, EmptyState } from "../../../components/ui";
-import { DISCOVER_PROJECTS, SPONSOR_STATS } from "../../../data/sponsorProjects";
-import { AnimatedSection, StaggerContainer } from "../../../components/animation/MotionSystem";
-import DealWorkflow from "../components/DealWorkflow";
+import { Card, Button, Badge, InputField, Skeleton, EmptyState } from "@/components/ui";
+import { DISCOVER_PROJECTS, SPONSOR_STATS } from "@/data/sponsorProjects";
+import { AnimatedSection, StaggerContainer } from "@/components/animation/MotionSystem";
+import DealWorkflow from "@/features/sponsor/components/DealWorkflow";
 import toast from "react-hot-toast";
 
-import { useFundingStore, useIntelligenceStore } from "../../../store/domainStores";
-import { useUIStore } from "../../../store/uiStore";
+import { useFundingStore, useIntelligenceStore } from "@/store/domainStores";
+import { useUIStore } from "@/store/uiStore";
 
 /**
  * DiscoverProjectsPage: A professional investment discovery hub for sponsors.
