@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Search, Bell, Menu, User, LogOut, Settings, HelpCircle, LayoutGrid, CheckSquare, Plus } from "lucide-react";
-import { useAuthStore } from "@/store/domainStores";
+import { Search, Bell, Menu, User, LogOut, Settings, LayoutGrid } from "lucide-react";
+import { useAuthStore } from "@/store/authStore";
 import { useUIStore } from "@/store/uiStore";
 import { RoleBadge } from "@/components/role/RoleBadge";
 import { InputField } from "@/components/ui";
@@ -49,10 +49,6 @@ export const TopNavigationBar = () => {
                         placeholder={`Search ${user?.role || 'workspace'}...`}
                         className="bg-white/50 border-gray-100 hover:border-gray-200 focus:bg-white h-10 text-sm shadow-sm transition-all duration-200"
                     />
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 opacity-40 group-focus-within:opacity-0 transition-opacity pointer-events-none">
-                        <kbd className="h-5 px-1.5 text-[10px] bg-gray-100 border border-gray-200 rounded-md font-sans">⌘</kbd>
-                        <kbd className="h-5 px-1.5 text-[10px] bg-gray-100 border border-gray-200 rounded-md font-sans">K</kbd>
-                    </div>
                 </div>
             </div>
 
@@ -66,18 +62,11 @@ export const TopNavigationBar = () => {
                 <div className="h-5 w-px bg-gray-200 hidden md:block"></div>
 
                 <button
-                    onClick={() => openOverlay('AUDIT_DRAWER')}
-                    className="p-2 text-gray-500 hover:bg-gray-200/50 rounded-lg transition-all relative group active:scale-95"
+                    onClick={() => navigate('/notifications')}
+                    className="p-2 text-gray-500 hover:bg-gray-200/50 rounded-lg transition-all relative group active:scale-95 cursor-pointer"
                 >
                     <Bell size={20} />
                     <span className="absolute top-2 right-2 h-2 w-2 bg-red-500 rounded-full border-2 border-white ring-2 ring-red-500/10 scale-100 group-hover:scale-125 transition-transform duration-200"></span>
-                </button>
-
-                <button
-                    onClick={() => openOverlay('DOSSIER_VIEWER', { title: 'Ecosystem Intelligence & Support', status: 'Active', findings: 'Udaan Protocol v1.0.4 is fully operational. Secure encryption layer active. 24/7 institutional support available via the global command node.' })}
-                    className="hidden sm:inline-flex p-2 text-gray-500 hover:bg-gray-200/50 rounded-lg transition-all active:scale-95"
-                >
-                    <HelpCircle size={20} />
                 </button>
 
                 <div className="h-5 w-px bg-gray-200 hidden sm:block mx-1"></div>

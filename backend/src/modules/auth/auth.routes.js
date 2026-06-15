@@ -12,9 +12,11 @@ const router = express.Router();
 // Public Paths
 router.post('/register', authController.register);
 router.post('/login', authController.login);
+router.post('/refresh', authController.refresh);
 
 // Private Paths (Protected by middleware)
 router.get('/me', authenticate, authController.getCurrentUser);
+router.patch('/profile', authenticate, authController.updateProfile);
 router.post('/logout', authenticate, (req, res) => {
     // 1. Clear Cookies
     res.clearCookie('refreshToken');

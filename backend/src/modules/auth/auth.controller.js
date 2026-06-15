@@ -13,10 +13,23 @@ class AuthController {
         try {
             const { email, password, role, name } = req.body;
             const newUser = await authService.registerUser({ email, password, role, name });
+            const { accessToken, refreshToken } = authService.generateTokens(newUser);
+
+            await authRepo.updateRefreshToken(newUser.id, refreshToken);
+
+            res.cookie('refreshToken', refreshToken, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+            });
 
             // Exclude password from response
-            const { password_hash, ...userResponse } = newUser;
-            res.status(201).json({ message: 'User registered successfully', user: userResponse });
+            const { password_hash, refresh_token, ...userData } = newUser;
+            res.status(201).json({
+                user: userData,
+                accessToken,
+                message: 'User registered successfully'
+            });
         } catch (err) {
             res.status(400).json({ error: err.message });
         }
@@ -54,11 +67,59 @@ class AuthController {
     }
 
     /**
+     * POST /api/auth/refresh
+     */
+    async refresh(req, res) {
+        try {
+            const token = req.cookies.refreshToken;
+            const { accessToken, refreshToken, user } = await authService.refreshAccessToken(token);
+
+            res.cookie('refreshToken', refreshToken, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                maxAge: 7 * 24 * 60 * 60 * 1000
+            });
+
+            const { password_hash, refresh_token: rToken, ...userData } = user;
+            res.status(200).json({
+                user: userData,
+                accessToken,
+                message: 'Token refreshed successfully'
+            });
+        } catch (err) {
+            res.status(401).json({ error: err.message });
+        }
+    }
+
+    /**
+     * PATCH /api/auth/profile
+     */
+    async updateProfile(req, res) {
+        try {
+            const userId = req.user.id;
+            const updatedUser = await authService.updateProfile(userId, req.body);
+            
+            const { password_hash, refresh_token, ...userData } = updatedUser;
+            res.status(200).json({
+                user: userData,
+                message: 'Profile updated successfully'
+            });
+        } catch (err) {
+            res.status(400).json({ error: err.message });
+        }
+    }
+
+    /**
      * GET /api/auth/me
      */
     async getCurrentUser(req, res) {
         try {
-            res.json({ user: req.user });
+            // Find current detailed user record from database
+            const user = await authRepo.findById(req.user.id);
+            if (!user) return res.status(401).json({ error: 'User not found' });
+            
+            const { password_hash, refresh_token, ...userData } = user;
+            res.json({ user: userData });
         } catch (err) {
             res.status(401).json({ error: 'Unauthorized' });
         }

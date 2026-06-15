@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Rocket, Target, Cpu, Users, BadgeDollarSign, AlertTriangle, CheckCircle2, ChevronRight, ChevronLeft } from 'lucide-react';
+import { X, Rocket, Target, Cpu, Users, AlertTriangle, CheckCircle2, ChevronRight, ChevronLeft } from 'lucide-react';
 import { useUIStore } from '@/store/uiStore';
-import { useProjectStore, useGovernanceStore } from '@/store/domainStores';
+import { useStartupStore } from '@/store/startupStore';
+import { useAuthStore } from '@/store/authStore';
 import { Button, InputField, Badge } from '@/components/ui';
 import toast from 'react-hot-toast';
 
@@ -11,14 +12,15 @@ const STEPS = [
     { id: 'domain', title: 'Domain & Impact', icon: Target },
     { id: 'tech', title: 'Technology Level', icon: Cpu },
     { id: 'team', title: 'Team & Capital', icon: Users },
-    { id: 'review', title: 'Institutional Review', icon: AlertTriangle }
+    { id: 'review', title: 'Ecosystem Review', icon: AlertTriangle }
 ];
 
 export default function VentureWizard() {
-    const { closeOverlay, addNotification } = useUIStore();
-    const { addProject } = useProjectStore();
-    const { addLog } = useGovernanceStore();
+    const { closeOverlay } = useUIStore();
+    const { createStartup } = useStartupStore();
+    const { user } = useAuthStore();
     const [currentStep, setCurrentStep] = useState(0);
+    const [isSaving, setIsSaving] = useState(false);
     const [formData, setFormData] = useState({
         title: '',
         description: '',
@@ -38,32 +40,27 @@ export default function VentureWizard() {
         if (currentStep > 0) setCurrentStep(currentStep - 1);
     };
 
-    const handleSubmit = () => {
-        const newProject = {
-            ...formData,
-            id: `proj_${Date.now()}`,
-            founder: 'Current User',
-            image: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop',
-            trending_score: 0,
-            equity: 10,
-            target: formData.fundingNeeded
-        };
+    const handleSubmit = async () => {
+        setIsSaving(true);
+        try {
+            await createStartup({
+                title: formData.title,
+                description: formData.description,
+                domain: formData.domain,
+                stage: formData.stage,
+                funding_required: formData.fundingNeeded,
+                raised: 0,
+                pitch_deck_url: '',
+                image_urls: ['https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop']
+            });
 
-        addProject(newProject);
-        addLog({
-            action: 'Venture Creation',
-            user: 'Innovator Node',
-            status: 'Success',
-            details: `New venture "${formData.title}" initialized in the ecosystem.`
-        });
-        addNotification({
-            type: 'SUCCESS',
-            message: `Venture "${formData.title}" successfully registered.`,
-            project: formData.title
-        });
-
-        toast.success("Venture Node Initialized!");
-        closeOverlay();
+            toast.success("Startup launched in ecosystem!");
+            closeOverlay();
+        } catch (err) {
+            toast.error(err.message || "Failed to launch startup.");
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     const renderStep = () => {

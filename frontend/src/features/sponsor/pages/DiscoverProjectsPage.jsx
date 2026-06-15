@@ -6,104 +6,135 @@ import {
     Layers,
     Zap,
     TrendingUp,
-    Plus,
     Bookmark,
     BookmarkCheck,
-    PieChart,
     Activity,
     Target,
-    Shield,
-    Clock,
-    CheckCircle2,
-    Briefcase,
-    Building2,
-    BriefcaseIcon,
-    AlertCircle
+    AlertCircle,
+    Mail,
+    Linkedin,
+    PhoneCall
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, Button, Badge, InputField, Skeleton, EmptyState } from "@/components/ui";
-import { DISCOVER_PROJECTS, SPONSOR_STATS } from "@/data/sponsorProjects";
 import { AnimatedSection, StaggerContainer } from "@/components/animation/MotionSystem";
-import DealWorkflow from "@/features/sponsor/components/DealWorkflow";
 import toast from "react-hot-toast";
 
-import { useFundingStore, useIntelligenceStore } from "@/store/domainStores";
-import { useUIStore } from "@/store/uiStore";
+import { useStartupStore } from "@/store/startupStore";
+import { useInvestorStore } from "@/store/investorStore";
+import { useMentorStore } from "@/store/mentorStore";
+import { useAuthStore } from "@/store/authStore";
 
-/**
- * DiscoverProjectsPage: A professional investment discovery hub for sponsors.
- */
 export default function DiscoverProjectsPage() {
-    const { watchlist, addToWatchlist, removeFromWatchlist } = useFundingStore();
-    const { pushAlert } = useIntelligenceStore();
-    const { openOverlay } = useUIStore();
+    const { user } = useAuthStore();
+    const { startups, fetchStartups } = useStartupStore();
+    const { watchlist, toggleSaveStartup, expressInterest } = useInvestorStore();
+    const { sendMentorshipRequest } = useMentorStore();
 
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedDomain, setSelectedDomain] = useState("All");
     const [selectedStage, setSelectedStage] = useState("All");
     const [isLoading, setIsLoading] = useState(true);
-    const [isDealWorkflowOpen, setIsDealWorkflowOpen] = useState(false);
-    const [selectedProject, setSelectedProject] = useState(null);
+    const [showInterestModal, setShowInterestModal] = useState(false);
+    const [showMentorModal, setShowMentorModal] = useState(false);
+    const [selectedStartup, setSelectedStartup] = useState(null);
+    const [notes, setNotes] = useState("");
+    const [mentorMessage, setMentorMessage] = useState("");
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const domains = ["All", "AgriTech", "CleanTech", "FinTech", "HealthTech", "DeepTech"];
-    const stages = ["All", "Idea", "Prototype", "MVP", "Scaling", "Early Research"];
+    const stages = ["All", "Idea", "Prototype", "MVP", "Seed", "Scale"];
 
     useEffect(() => {
-        const timer = setTimeout(() => setIsLoading(false), 800);
-        return () => clearTimeout(timer);
-    }, []);
+        const loadDiscoverData = async () => {
+            try {
+                await fetchStartups();
+            } catch (err) {
+                console.error("Error loading startups", err);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        loadDiscoverData();
+    }, [fetchStartups]);
 
-    const toggleWatchlist = (project, e) => {
+    const toggleWatchlist = async (startup, e) => {
         e?.stopPropagation();
-        if (watchlist.includes(project.id)) {
-            removeFromWatchlist(project.id);
-            toast.success("Removed from watchlist.");
-        } else {
-            addToWatchlist(project.id);
-            pushAlert({
-                type: 'WATCHLIST_ADD',
-                title: 'Strategic Asset Tracked',
-                message: `${project.name} has been added to your institutional watchlist.`,
-                severity: 'low'
-            });
-            toast.success("Added to institutional watchlist.");
+        try {
+            const isSaved = await toggleSaveStartup(startup.id);
+            toast.success(isSaved ? "Saved to watchlist" : "Removed from watchlist");
+        } catch (err) {
+            toast.error(err.message || "Action failed.");
         }
     };
 
-    const addToPipeline = (project, e) => {
+    const handleOpenInterest = (startup, e) => {
         e?.stopPropagation();
-        setSelectedProject(project);
-        setIsDealWorkflowOpen(true);
+        setSelectedStartup(startup);
+        setNotes("");
+        setShowInterestModal(true);
+    };
+
+    const handleOpenMentor = (startup, e) => {
+        e?.stopPropagation();
+        setSelectedStartup(startup);
+        setMentorMessage("");
+        setShowMentorModal(true);
+    };
+
+    const submitInterest = async () => {
+        if (!selectedStartup) return;
+        setIsSubmitting(true);
+        try {
+            await expressInterest(selectedStartup.id, notes);
+            toast.success("Interest expressed successfully! Contact details are unlocked.");
+            setShowInterestModal(false);
+            setSelectedStartup(null);
+        } catch (err) {
+            toast.error(err.message || "Failed to submit interest.");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const submitMentor = async () => {
+        if (!selectedStartup) return;
+        setIsSubmitting(true);
+        try {
+            await sendMentorshipRequest(selectedStartup.id, mentorMessage);
+            toast.success("Mentorship request sent successfully!");
+            setShowMentorModal(false);
+            setSelectedStartup(null);
+        } catch (err) {
+            toast.error(err.message || "Failed to send mentorship request.");
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const filteredProjects = useMemo(() => {
-        return DISCOVER_PROJECTS.filter(project => {
+        return startups.filter(project => {
             const matchesSearch =
-                project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                project.problem.toLowerCase().includes(searchQuery.toLowerCase());
+                project.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                project.description.toLowerCase().includes(searchQuery.toLowerCase());
 
-            const matchesDomain = selectedDomain === "All" || project.domain.includes(selectedDomain);
+            const matchesDomain = selectedDomain === "All" || project.domain === selectedDomain;
             const matchesStage = selectedStage === "All" || project.stage === selectedStage;
 
             return matchesSearch && matchesDomain && matchesStage;
         });
-    }, [searchQuery, selectedDomain, selectedStage]);
+    }, [startups, searchQuery, selectedDomain, selectedStage]);
 
     if (isLoading) {
         return (
-            <div className="p-8 space-y-12 animate-in fade-in duration-500">
+            <div className="p-8 space-y-12 animate-in fade-in duration-500 bg-[#F8F9FA]/50 min-h-screen">
                 <div className="space-y-4">
                     <Skeleton className="h-4 w-32" />
                     <Skeleton className="h-12 w-[600px]" />
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    {[1, 2, 3, 4].map(i => (
-                        <div key={i} className="p-6 bg-white border border-gray-100 rounded-3xl h-24" />
-                    ))}
-                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                     {[1, 2, 3, 4, 5, 6].map(i => (
-                        <div key={i} className="h-[400px] border border-gray-100 rounded-[2.5rem] bg-white" />
+                        <div key={i} className="h-[350px] border border-gray-100 rounded-[2.5rem] bg-white" />
                     ))}
                 </div>
             </div>
@@ -116,17 +147,17 @@ export default function DiscoverProjectsPage() {
             <AnimatedSection direction="down" className="flex flex-col md:flex-row md:items-end justify-between gap-8 pb-10 border-b border-gray-200/50">
                 <div className="space-y-3">
                     <div className="flex items-center gap-3 mb-2">
-                        <Badge variant="primary" className="bg-gray-900 text-white border-none font-black tracking-widest px-3 py-1 text-[9px]">Sponsor Hub</Badge>
+                        <Badge variant="primary" className="bg-gray-900 text-white border-none font-black tracking-widest px-3 py-1 text-[9px] uppercase">Ecosystem Discovery</Badge>
                         <span className="h-1.5 w-1.5 bg-gray-300 rounded-full"></span>
                         <div className="flex items-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                            <Activity size={12} /> Active Discovery Mode
+                            <Activity size={12} /> Live stream connection
                         </div>
                     </div>
                     <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-gray-900 leading-tight">
-                        Discover <span className="text-gray-400">Ventures.</span>
+                        Ecosystem <span className="text-gray-400">Startups.</span>
                     </h1>
                     <p className="text-sm text-gray-500 font-medium max-w-xl leading-relaxed">
-                        Evaluate investment-ready projects, monitor emerging traction, and build your high-impact portfolio from the most innovative institutional nodes.
+                        Explore launch-ready startup profiles, filter by industry domains or development stages, and initiate advisor or funding requests directly.
                     </p>
                 </div>
 
@@ -134,36 +165,20 @@ export default function DiscoverProjectsPage() {
                     <div className="relative group w-full md:w-96">
                         <InputField
                             icon={Search}
-                            placeholder="Search ventures, problems..."
+                            placeholder="Search startups, solutions..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             className="bg-white border-gray-200 h-14 rounded-2xl focus:shadow-xl transition-all"
                         />
                     </div>
-                    <Button
-                        onClick={() => openOverlay('DOSSIER_VIEWER', { title: 'Institutional Impact Report', type: 'Strategic' })}
-                        variant="white"
-                        className="h-14 px-6 rounded-2xl flex items-center gap-3 font-black text-xs uppercase shadow-sm border-gray-100 hover:bg-gray-50 transition-all active:scale-95"
-                    >
-                        <Download size={18} /> Download Impact Report
-                    </Button>
                 </div>
             </AnimatedSection>
-
-            {/* Top Stats Banner */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-                <SponsorStatCard icon={Layers} label="Reviewed" value={SPONSOR_STATS.projectsReviewed} color="blue" />
-                <SponsorStatCard icon={Briefcase} label="Active Deals" value={SPONSOR_STATS.activeDeals} color="emerald" />
-                <SponsorStatCard icon={Zap} label="Committed" value={SPONSOR_STATS.totalCommitted} color="amber" />
-                <SponsorStatCard icon={Target} label="Impact Score" value={`${SPONSOR_STATS.overallImpactScore}%`} color="indigo" />
-                <SponsorStatCard icon={Bookmark} label="Watchlist" value={SPONSOR_STATS.watchlistSize} color="rose" />
-            </div>
 
             {/* Filters Bar */}
             <div className="flex flex-col lg:flex-row items-center gap-6 sticky top-0 z-20 bg-[#F8F9FA]/80 backdrop-blur-xl py-4 -mx-4 px-4 border-b border-gray-100">
                 <div className="flex items-center gap-2 text-gray-400 min-w-max">
                     <Filter size={18} />
-                    <span className="text-[10px] font-black uppercase tracking-widest">Investor Filters</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest">Search Filter Node</span>
                 </div>
 
                 <div className="flex overflow-x-auto pb-2 md:pb-0 gap-3 no-scrollbar flex-1">
@@ -197,19 +212,6 @@ export default function DiscoverProjectsPage() {
                     >
                         Reset
                     </Button>
-                    <Button
-                        onClick={() => toast.success("Applying Institutional filters to discovery stream node.")}
-                        className="h-12 px-6 bg-gray-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest border-none active:scale-95 transition-all shadow-lg"
-                    >
-                        Apply Institutional Filters
-                    </Button>
-                </div>
-
-                <div className="hidden lg:flex items-center gap-3 px-4 py-2 bg-gray-900 rounded-2xl border border-gray-800 ml-auto">
-                    <TrendingUp className="text-emerald-400" size={16} />
-                    <span className="text-[10px] font-black uppercase text-white tracking-widest">
-                        High Potential Targets Detected
-                    </span>
                 </div>
             </div>
 
@@ -221,75 +223,82 @@ export default function DiscoverProjectsPage() {
                             <SponsorProjectCard
                                 key={project.id}
                                 project={project}
-                                isInWatchlist={watchlist.includes(project.id)}
+                                currentUser={user}
+                                isInWatchlist={watchlist.some(w => w.id === project.id)}
                                 onToggleWatchlist={(e) => toggleWatchlist(project, e)}
-                                onAddToPipeline={(e) => addToPipeline(project, e)}
+                                onExpressInterest={(e) => handleOpenInterest(project, e)}
+                                onMentorRequest={(e) => handleOpenMentor(project, e)}
                             />
                         ))}
                     </div>
                 ) : (
                     <EmptyState
                         icon={AlertCircle}
-                        title="No Matching Ventures"
-                        description="Try adjusting your investment filters or search keywords to find relevant startup nodes."
-                        action={
-                            <Button
-                                variant="secondary"
-                                size="sm"
-                                onClick={() => {
-                                    setSelectedDomain("All");
-                                    setSelectedStage("All");
-                                    setSearchQuery("");
-                                }}
-                            >
-                                Reset All Filters
-                            </Button>
-                        }
+                        title="No Startups Match"
+                        description="Adjust your search query or domain filter metrics to explore other active startup nodes."
                     />
                 )}
             </StaggerContainer>
 
-            {/* Deal Execution Workflow */}
+            {/* Interest Modal */}
             <AnimatePresence>
-                {isDealWorkflowOpen && selectedProject && (
-                    <DealWorkflow
-                        project={selectedProject}
-                        isOpen={isDealWorkflowOpen}
-                        onClose={() => {
-                            setIsDealWorkflowOpen(false);
-                            // Optionally refresh stats or pipeline here
-                        }}
-                    />
+                {showInterestModal && selectedStartup && (
+                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000] flex items-center justify-center p-4">
+                        <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="bg-white rounded-[2rem] p-8 max-w-md w-full shadow-2xl space-y-6">
+                            <h3 className="text-xl font-bold text-gray-900">Express Funding Interest</h3>
+                            <p className="text-xs text-gray-500 leading-relaxed font-medium">Add a brief note explaining your allocation guidelines or contact terms. The founder will receive your profile and contact credentials immediately.</p>
+                            <textarea
+                                value={notes}
+                                onChange={(e) => setNotes(e.target.value)}
+                                placeholder="Type negotiation notes or support guidelines..."
+                                className="w-full p-4 h-28 border border-gray-100 focus:border-gray-900 rounded-xl text-sm outline-none resize-none font-medium"
+                            />
+                            <div className="flex gap-4">
+                                <Button onClick={submitInterest} disabled={isSubmitting} className="flex-1 h-12 bg-gray-900 text-white rounded-xl text-xs font-black uppercase tracking-widest border-none">
+                                    {isSubmitting ? "Submitting..." : "Express Interest"}
+                                </Button>
+                                <Button onClick={() => setShowInterestModal(false)} variant="ghost" className="flex-1 h-12 bg-gray-50 text-gray-400 rounded-xl text-xs font-black uppercase tracking-widest">
+                                    Cancel
+                                </Button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Mentor Request Modal */}
+            <AnimatePresence>
+                {showMentorModal && selectedStartup && (
+                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000] flex items-center justify-center p-4">
+                        <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="bg-white rounded-[2rem] p-8 max-w-md w-full shadow-2xl space-y-6">
+                            <h3 className="text-xl font-bold text-gray-900">Send Mentorship Proposal</h3>
+                            <p className="text-xs text-gray-500 leading-relaxed font-medium">Outline the validation areas (e.g. tech stack, growth, regulatory compliance) you'd like to guide the founder in.</p>
+                            <textarea
+                                value={mentorMessage}
+                                onChange={(e) => setMentorMessage(e.target.value)}
+                                placeholder="Write proposal message..."
+                                className="w-full p-4 h-28 border border-gray-100 focus:border-gray-900 rounded-xl text-sm outline-none resize-none font-medium"
+                            />
+                            <div className="flex gap-4">
+                                <Button onClick={submitMentor} disabled={isSubmitting} className="flex-1 h-12 bg-gray-900 text-white rounded-xl text-xs font-black uppercase tracking-widest border-none">
+                                    {isSubmitting ? "Sending..." : "Submit Proposal"}
+                                </Button>
+                                <Button onClick={() => setShowMentorModal(false)} variant="ghost" className="flex-1 h-12 bg-gray-50 text-gray-400 rounded-xl text-xs font-black uppercase tracking-widest">
+                                    Cancel
+                                </Button>
+                            </div>
+                        </motion.div>
+                    </div>
                 )}
             </AnimatePresence>
         </div>
     );
 }
 
-function SponsorStatCard({ icon: Icon, label, value, color }) {
-    const colors = {
-        blue: "text-blue-600 bg-blue-50/50",
-        emerald: "text-emerald-600 bg-emerald-50/50",
-        amber: "text-amber-600 bg-amber-50/50",
-        indigo: "text-indigo-600 bg-indigo-50/50",
-        rose: "text-rose-600 bg-rose-50/50"
-    };
+function SponsorProjectCard({ project, currentUser, isInWatchlist, onToggleWatchlist, onExpressInterest, onMentorRequest }) {
+    const isInvestor = currentUser?.role === 'Sponsor' || currentUser?.role === 'Investor';
+    const isMentor = currentUser?.role === 'Mentor';
 
-    return (
-        <Card className="p-6 border-none shadow-sm hover:shadow-xl hover:shadow-black/5 transition-all duration-300 rounded-3xl flex items-center gap-5 group bg-white">
-            <div className={`h-12 w-12 rounded-2xl flex items-center justify-center shrink-0 ${colors[color]} group-hover:scale-110 transition-transform`}>
-                <Icon size={20} />
-            </div>
-            <div>
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{label}</p>
-                <p className="text-xl font-black text-gray-900">{value}</p>
-            </div>
-        </Card>
-    );
-}
-
-function SponsorProjectCard({ project, isInWatchlist, onToggleWatchlist, onAddToPipeline }) {
-    const { openOverlay } = useUIStore();
     return (
         <motion.div
             layout
@@ -299,7 +308,7 @@ function SponsorProjectCard({ project, isInWatchlist, onToggleWatchlist, onAddTo
             whileHover={{ y: -8 }}
             className="group"
         >
-            <Card className="h-full border-none shadow-sm hover:shadow-2xl hover:shadow-black/5 transition-all duration-500 flex flex-col p-8 rounded-[2.5rem] bg-white ring-1 ring-gray-100 relative overflow-hidden">
+            <Card className="h-full border-none shadow-sm hover:shadow-2xl hover:shadow-black/5 transition-all duration-500 flex flex-col p-8 rounded-[2.5rem] bg-white ring-1 ring-gray-100 relative overflow-hidden text-[#1A1F23]">
                 <div className="flex justify-between items-start mb-6">
                     <div className="space-y-2">
                         <Badge variant="outline" className="text-[9px] font-black uppercase tracking-widest px-3 py-1 bg-gray-50 text-gray-400 border-none">
@@ -307,56 +316,79 @@ function SponsorProjectCard({ project, isInWatchlist, onToggleWatchlist, onAddTo
                         </Badge>
                         <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest">{project.domain}</p>
                     </div>
-                    <button
-                        onClick={onToggleWatchlist}
-                        className={`h-10 w-10 rounded-xl flex items-center justify-center transition-all ${isInWatchlist ? 'text-amber-500' : 'text-gray-300 hover:text-gray-900 bg-gray-50'}`}
-                    >
-                        {isInWatchlist ? <BookmarkCheck size={20} fill="currentColor" /> : <Bookmark size={20} />}
-                    </button>
+                    {isInvestor && (
+                        <button
+                            onClick={onToggleWatchlist}
+                            className={`h-10 w-10 rounded-xl flex items-center justify-center transition-all cursor-pointer ${isInWatchlist ? 'text-amber-500 bg-amber-50/50' : 'text-gray-300 hover:text-gray-900 bg-gray-50'}`}
+                        >
+                            {isInWatchlist ? <BookmarkCheck size={20} fill="currentColor" /> : <Bookmark size={20} />}
+                        </button>
+                    )}
                 </div>
 
                 <div className="flex-1 space-y-4">
                     <h3 className="text-2xl font-bold text-gray-900 leading-tight mb-2 group-hover:text-black">
-                        {project.name}
+                        {project.title}
                     </h3>
-                    <p className="text-sm font-medium text-gray-400 leading-relaxed line-clamp-2">
-                        {project.problem}
+                    <p className="text-sm font-medium text-gray-400 leading-relaxed line-clamp-3">
+                        {project.description}
                     </p>
 
-                    <div className="grid grid-cols-2 gap-4 py-4">
+                    <div className="grid grid-cols-2 gap-4 py-4 border-t border-b border-gray-50">
                         <div>
                             <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Funding Sought</p>
-                            <p className="text-sm font-black text-gray-900">{project.fundingSought}</p>
+                            <p className="text-sm font-black text-gray-900">₹{project.funding_required} Lakhs</p>
                         </div>
                         <div className="text-right">
-                            <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Innovation Score</p>
+                            <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Ecosystem Status</p>
                             <div className="flex items-center justify-end gap-2">
-                                <Zap className="text-amber-500" size={14} />
-                                <p className="text-sm font-black text-gray-900">{project.innovationScore}%</p>
+                                <Zap className="text-emerald-500" size={14} />
+                                <p className="text-sm font-black text-gray-900">Active Node</p>
                             </div>
                         </div>
                     </div>
 
-                    <div className="space-y-3 bg-gray-50/50 p-4 rounded-2xl border border-gray-100">
-                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Traction Indicator</p>
-                        <p className="text-xs font-bold text-gray-600 leading-relaxed italic line-clamp-2">"{project.traction}"</p>
+                    {/* Contact Details Card */}
+                    <div className="space-y-3 bg-gray-50/50 p-5 rounded-[2rem] border border-gray-100">
+                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Founder Contact Channels</p>
+                        <div className="space-y-2 text-xs font-semibold text-gray-600">
+                            <div className="flex items-center gap-2">
+                                <Mail size={14} className="text-gray-400" />
+                                <a href={`mailto:${project.owner_email}`} className="hover:underline text-gray-700">{project.owner_email}</a>
+                            </div>
+                            {project.linkedin_url && (
+                                <div className="flex items-center gap-2">
+                                    <Linkedin size={14} className="text-[#0077B5]" />
+                                    <a href={project.linkedin_url} target="_blank" rel="noreferrer" className="hover:underline text-[#0077B5]">LinkedIn Profile</a>
+                                </div>
+                            )}
+                            {project.whatsapp_number && (
+                                <div className="flex items-center gap-2">
+                                    <PhoneCall size={14} className="text-[#25D366]" />
+                                    <a href={`https://wa.me/${project.whatsapp_number.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" className="hover:underline text-[#25D366]">WhatsApp Connection</a>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
 
                 <div className="mt-8 pt-6 border-t border-gray-50 flex gap-3">
-                    <Button
-                        onClick={onAddToPipeline}
-                        className="flex-1 h-12 bg-gray-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest border-none shadow-xl flex items-center justify-center gap-2 group/btn active:scale-95 transition-all"
-                    >
-                        Pipeline <TrendingUp size={14} className="group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5 transition-transform" />
-                    </Button>
-                    <Button
-                        variant="white"
-                        onClick={() => openOverlay('DOSSIER_VIEWER', project)}
-                        className="h-12 px-5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm border-gray-100 flex items-center gap-2 group/btn2 active:scale-95 transition-all"
-                    >
-                        Details <ArrowUpRight size={14} className="group-hover/btn2:translate-x-0.5 group-hover/btn2:-translate-y-0.5 transition-transform" />
-                    </Button>
+                    {isInvestor && (
+                        <Button
+                            onClick={onExpressInterest}
+                            className="flex-1 h-12 bg-gray-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest border-none shadow-xl flex items-center justify-center gap-2 group/btn active:scale-95 transition-all cursor-pointer"
+                        >
+                            Express Interest <ArrowUpRight size={14} />
+                        </Button>
+                    )}
+                    {isMentor && (
+                        <Button
+                            onClick={onMentorRequest}
+                            className="flex-1 h-12 bg-gray-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest border-none shadow-xl flex items-center justify-center gap-2 group/btn active:scale-95 transition-all cursor-pointer"
+                        >
+                            Request Mentorship <ArrowUpRight size={14} />
+                        </Button>
+                    )}
                 </div>
             </Card>
         </motion.div>

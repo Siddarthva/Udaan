@@ -22,6 +22,11 @@ class AuthRepository {
     async updateRefreshToken(userId, token) {
         return db('users').where({ id: userId }).update({ refresh_token: token });
     }
+
+    async updateUser(userId, updateData) {
+        const [updatedUser] = await db('users').where({ id: userId }).update(updateData).returning('*');
+        return updatedUser;
+    }
 }
 
 module.exports = new AuthRepository();

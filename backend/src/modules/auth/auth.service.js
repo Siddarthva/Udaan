@@ -56,6 +56,48 @@ class AuthService {
 
         return { accessToken, refreshToken };
     }
+
+    async refreshAccessToken(token) {
+        if (!token) throw new Error('Refresh token is required');
+        
+        try {
+            const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET || 'refresh-secret');
+            const user = await authRepo.findById(decoded.id);
+            
+            if (!user || user.refresh_token !== token) {
+                throw new Error('Invalid or revoked refresh token');
+            }
+
+            const tokens = this.generateTokens(user);
+            await authRepo.updateRefreshToken(user.id, tokens.refreshToken);
+            
+            return {
+                user,
+                accessToken: tokens.accessToken,
+                refreshToken: tokens.refreshToken
+            };
+        } catch (err) {
+            throw new Error('Expired or invalid refresh token');
+        }
+    }
+
+    async updateProfile(userId, profileData) {
+        const allowedUpdates = ['name', 'bio', 'avatar_url', 'skills', 'linkedin_url', 'whatsapp_number', 'contact_links'];
+        const updates = {};
+        
+        for (const key of allowedUpdates) {
+            if (profileData[key] !== undefined) {
+                updates[key] = profileData[key];
+            }
+        }
+        
+        if (updates.skills && typeof updates.skills === 'string') {
+            updates.skills = updates.skills.split(',').map(s => s.trim());
+        }
+
+        updates.updated_at = new Date();
+        return authRepo.updateUser(userId, updates);
+    }
 }
 
 module.exports = new AuthService();

@@ -40,11 +40,11 @@ app.get('/health', (req, res) => {
 
 // Modular Routes 🧩
 const authRoutes = require('./modules/auth/auth.routes');
-const projectRoutes = require('./modules/projects/project.routes');
+const startupRoutes = require('./modules/startups/startup.routes');
 
 app.use('/api/auth', authRoutes);
-app.use('/api/projects', projectRoutes);
-app.use('/api/users', (req, res) => res.json({ msg: "Users module under construction" }));
+app.use('/api/startups', startupRoutes);
+app.use('/api/projects', startupRoutes); // Backward compatibility alias
 
 // Global Error Handler
 app.use((err, req, res, next) => {

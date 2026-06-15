@@ -22,36 +22,23 @@ import {
 export const ROLE_NAVIGATION = {
     Innovator: [
         { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-        { to: "/projects", icon: Briefcase, label: "My Projects" },
-        { to: "/contribute", icon: Zap, label: "Contribute" },
-        { to: "/funding", icon: Trophy, label: "Funding Opportunities" },
-        { to: "/mentors", icon: Users, label: "Mentors" },
-        { to: "/feed", icon: MessageSquare, label: "Community" },
-        { to: "/messages", icon: MessageSquare, label: "Messages" },
+        { to: "/projects", icon: Briefcase, label: "My Startups" },
         { to: "/notifications", icon: Bell, label: "Notifications" },
         { to: "/profile", icon: User, label: "Profile" },
         { to: "/settings", icon: Settings, label: "Settings" }
     ],
     Mentor: [
         { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-        { to: "/mentees", icon: Users, label: "Mentees" },
-        { to: "/requests", icon: Search, label: "Requests for Guidance" },
-        { to: "/sessions", icon: Calendar, label: "Sessions / Calendar" },
-        { to: "/resources", icon: BookOpen, label: "Resources" },
-        { to: "/feed", icon: MessageSquare, label: "Community" },
-        { to: "/messages", icon: MessageSquare, label: "Messages" },
+        { to: "/discover", icon: Search, label: "Browse Startups" },
+        { to: "/requests", icon: Search, label: "Mentorship Requests" },
         { to: "/notifications", icon: Bell, label: "Notifications" },
         { to: "/profile", icon: User, label: "Profile" },
         { to: "/settings", icon: Settings, label: "Settings" }
     ],
     Sponsor: [
         { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-        { to: "/sponsor/discover", icon: Search, label: "Discover Projects" },
-        { to: "/sponsor/pipeline", icon: Zap, label: "Funding Pipeline" },
+        { to: "/sponsor/discover", icon: Search, label: "Discover Startups" },
         { to: "/sponsor/watchlist", icon: Star, label: "Watchlist" },
-        { to: "/sponsor/portfolio", icon: PieChart, label: "Portfolio / Impact" },
-        { to: "/sponsor/reports", icon: FileText, label: "Reports" },
-        { to: "/messages", icon: MessageSquare, label: "Messages" },
         { to: "/notifications", icon: Bell, label: "Notifications" },
         { to: "/profile", icon: User, label: "Profile" },
         { to: "/settings", icon: Settings, label: "Settings" }
