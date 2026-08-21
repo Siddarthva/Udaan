@@ -46,7 +46,6 @@ Udaan is a full-stack platform consisting of a production-ready Node.js/Express 
 - Node.js / Express (CommonJS)
 - PostgreSQL via Knex
 - Redis for caching and real-time support
-- Socket.IO for real-time messaging and notifications
 - JSON Web Tokens (JWT) for auth
 - Zod for validation
 - Security and hardening: Helmet, CORS, rate limiting, bcrypt for password hashing
@@ -177,6 +176,3 @@ npm run lint
 
 ---
 
-## License
-
-Internal / Private project. Add a formal license here if you plan to open source or distribute Udaan.
