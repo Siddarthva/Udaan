@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import mentorService from '../services/mentorService';
+import { mentorApi } from '../api/api';
 
 export const useMentorStore = create((set, get) => ({
     requests: [],
@@ -9,7 +9,7 @@ export const useMentorStore = create((set, get) => ({
     sendMentorshipRequest: async (startupId, message) => {
         set({ isLoading: true, error: null });
         try {
-            const request = await mentorService.sendRequest(startupId, message);
+            const request = await mentorApi.sendRequest(startupId, message);
             set((state) => ({
                 requests: [request, ...state.requests],
                 isLoading: false
@@ -24,7 +24,7 @@ export const useMentorStore = create((set, get) => ({
     fetchMentorRequests: async () => {
         set({ isLoading: true, error: null });
         try {
-            const requests = await mentorService.fetchRequests();
+            const requests = await mentorApi.fetchRequests();
             set({ requests, isLoading: false });
         } catch (err) {
             set({ error: err.message, isLoading: false });
@@ -33,7 +33,7 @@ export const useMentorStore = create((set, get) => ({
 
     updateRequestStatus: async (requestId, status) => {
         try {
-            const updated = await mentorService.updateRequestStatus(requestId, status);
+            const updated = await mentorApi.updateRequestStatus(requestId, status);
             set((state) => ({
                 requests: state.requests.map(r => r.id === requestId ? updated : r)
             }));

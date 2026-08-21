@@ -1,25 +1,35 @@
 import { create } from 'zustand';
-import authService from '../services/authService';
+import { authApi } from '../api/api';
 
 export const useAuthStore = create((set, get) => ({
     user: null,
-    accessToken: null,
+    accessToken: localStorage.getItem('accessToken') || null,
     isAuthenticated: false,
     isLoading: true,
     error: null,
 
-    setSession: (user, accessToken) => set({
-        user,
-        accessToken,
-        isAuthenticated: !!user,
-        isLoading: false,
-        error: null
-    }),
+    setSession: (user, accessToken) => {
+        if (accessToken) {
+            localStorage.setItem('accessToken', accessToken);
+        } else {
+            localStorage.removeItem('accessToken');
+        }
+        set({
+            user,
+            accessToken: accessToken || null,
+            isAuthenticated: !!user,
+            isLoading: false,
+            error: null
+        });
+    },
 
     signup: async ({ name, email, password, role }) => {
         set({ isLoading: true, error: null });
         try {
-            const data = await authService.register({ name, email, password, role });
+            const data = await authApi.register({ name, email, password, role });
+            if (data.accessToken) {
+                localStorage.setItem('accessToken', data.accessToken);
+            }
             set({
                 user: data.user,
                 accessToken: data.accessToken,
@@ -37,7 +47,10 @@ export const useAuthStore = create((set, get) => ({
     login: async ({ email, password }) => {
         set({ isLoading: true, error: null });
         try {
-            const data = await authService.login(email, password);
+            const data = await authApi.login(email, password);
+            if (data.accessToken) {
+                localStorage.setItem('accessToken', data.accessToken);
+            }
             set({
                 user: data.user,
                 accessToken: data.accessToken,
@@ -54,10 +67,11 @@ export const useAuthStore = create((set, get) => ({
 
     logout: async () => {
         try {
-            await authService.logout();
+            await authApi.logout();
         } catch (e) {
-            console.error('Logout error on server', e);
+            // Ignore error if already logged out or session expired
         }
+        localStorage.removeItem('accessToken');
         set({
             user: null,
             accessToken: null,
@@ -69,15 +83,28 @@ export const useAuthStore = create((set, get) => ({
 
     loadUserFromLocalStorage: async () => {
         set({ isLoading: true });
+        const token = localStorage.getItem('accessToken') || get().accessToken;
+        
+        if (!token) {
+            set({
+                user: null,
+                accessToken: null,
+                isAuthenticated: false,
+                isLoading: false
+            });
+            return;
+        }
+
         try {
-            const user = await authService.getCurrentUser();
+            const user = await authApi.getCurrentUser();
             set({
                 user,
+                accessToken: token,
                 isAuthenticated: !!user,
                 isLoading: false
             });
         } catch (err) {
-            // If fetching me fails, they are not logged in
+            localStorage.removeItem('accessToken');
             set({
                 user: null,
                 accessToken: null,
@@ -87,14 +114,13 @@ export const useAuthStore = create((set, get) => ({
         }
     },
 
-    // Alias for compatibility
     loadUserFromStorage: async () => {
         await get().loadUserFromLocalStorage();
     },
 
     updateProfile: async (updates) => {
         try {
-            const response = await authService.updateProfile(updates);
+            const response = await authApi.updateProfile(updates);
             set({ user: response.user });
             return response.user;
         } catch (err) {

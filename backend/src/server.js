@@ -1,23 +1,27 @@
 const http = require('http');
-const dotenv = require('dotenv');
-
-// Load environment variables before anything else
-dotenv.config();
-
+const env = require('./config/env');
 const app = require('./app');
+
+// Validate environment variables on startup
+env.validateEnv();
+
 const server = http.createServer(app);
 
-// Start Server on Port specified in environment
-const PORT = process.env.PORT || 8000;
+const PORT = env.port;
 server.listen(PORT, () => {
     console.log(`
     ⚡ [SERVER RUNNING]: http://localhost:${PORT}
-    🏗️ [ARCHITECTURE]: Modular Monolith
+    🏗️ [ENVIRONMENT]: ${env.env.toUpperCase()}
+    🚀 [API PREFIX]: ${env.api.prefix}
     `);
 });
 
-// Error handling for server-level issues
 server.on('error', (error) => {
-    console.error(`[CRITICAL ERROR]: ${error.message}`);
+    if (error.code === 'EADDRINUSE') {
+        console.error(`❌ [PORT COLLISION]: Port ${PORT} is already in use by another running instance of Udaan server.`);
+        console.error(`👉 Please close the active terminal running 'npm run dev' or kill port ${PORT} to restart.`);
+    } else {
+        console.error(`[CRITICAL ERROR]: ${error.message}`);
+    }
     process.exit(1);
 });

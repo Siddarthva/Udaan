@@ -4,55 +4,64 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const cookieParser = require('cookie-parser');
 const rateLimit = require('express-rate-limit');
+const path = require('path');
+const env = require('./config/env');
+const setupSwagger = require('./config/swagger');
+const { errorHandler } = require('./middleware/error');
 
-// Initializing the app
+const authRoutes = require('./modules/auth/routes');
+const startupRoutes = require('./modules/startup/routes');
+const uploadRoutes = require('./modules/upload/routes');
+const messagesRoutes = require('./modules/messages/routes');
+const followRoutes = require('./modules/follow/routes');
+const notificationsRoutes = require('./modules/notifications/routes');
+const requestsRoutes = require('./modules/requests/routes');
+const aiRoutes = require('./modules/ai/routes');
+const communityRoutes = require('./modules/community/routes');
+
 const app = express();
 
-// Security Middlewares
 app.use(helmet());
 app.use(cors({
-    origin: process.env.CLIENT_ORIGIN || 'http://localhost:5173',
+    origin: env.clientUrl,
     credentials: true
 }));
 
-// Monitoring & Logging
 app.use(morgan('combined'));
 
-// Rate Limiting to prevent brute force/spam
 const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // limit each IP to 100 requests per windowMs
+    windowMs: 15 * 60 * 1000,
+    max: env.env === 'production' ? 100 : 100000,
     standardHeaders: true,
     legacyHeaders: false,
+    skip: (req) => env.env !== 'production',
     message: { error: "Too many requests, please try again later." }
 });
-app.use('/api/', limiter);
+app.use(`${env.api.prefix}/`, limiter);
 
-// Parsing Middlewares
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// Basic Health Check Route
+app.use('/mock-files', express.static(path.join(__dirname, '../mock-storage')));
+
 app.get('/health', (req, res) => {
     res.status(200).json({ status: 'healthy', timestamp: new Date().toISOString() });
 });
 
-// Modular Routes 🧩
-const authRoutes = require('./modules/auth/auth.routes');
-const startupRoutes = require('./modules/startups/startup.routes');
+setupSwagger(app);
 
-app.use('/api/auth', authRoutes);
-app.use('/api/startups', startupRoutes);
-app.use('/api/projects', startupRoutes); // Backward compatibility alias
+app.use(`${env.api.prefix}/auth`, authRoutes);
+app.use(`${env.api.prefix}/startups`, startupRoutes);
+app.use(`${env.api.prefix}/projects`, startupRoutes);
+app.use(`${env.api.prefix}/upload`, uploadRoutes);
+app.use(`${env.api.prefix}/messages`, messagesRoutes);
+app.use(`${env.api.prefix}/requests`, requestsRoutes);
+app.use(`${env.api.prefix}/follow`, followRoutes);
+app.use(`${env.api.prefix}/notifications`, notificationsRoutes);
+app.use(`${env.api.prefix}/ai`, aiRoutes);
+app.use(`${env.api.prefix}/community`, communityRoutes);
 
-// Global Error Handler
-app.use((err, req, res, next) => {
-    console.error(`[ERROR]: ${err.message}`);
-    const statusCode = err.statusCode || 500;
-    res.status(statusCode).json({
-        error: process.env.NODE_ENV === 'production' ? 'Internal Server Error' : err.message
-    });
-});
+app.use(errorHandler);
 
 module.exports = app;

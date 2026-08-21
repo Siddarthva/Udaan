@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import investorService from '../services/investorService';
+import { investorApi } from '../api/api';
 
 export const useInvestorStore = create((set, get) => ({
     watchlist: [],
@@ -10,7 +10,7 @@ export const useInvestorStore = create((set, get) => ({
     fetchWatchlist: async () => {
         set({ isLoading: true, error: null });
         try {
-            const watchlist = await investorService.fetchWatchlist();
+            const watchlist = await investorApi.fetchWatchlist();
             set({ watchlist, isLoading: false });
         } catch (err) {
             set({ error: err.message, isLoading: false });
@@ -19,8 +19,7 @@ export const useInvestorStore = create((set, get) => ({
 
     toggleSaveStartup: async (startupId) => {
         try {
-            const result = await investorService.toggleSave(startupId);
-            // Re-fetch watchlist to ensure proper sync with database
+            const result = await investorApi.toggleSave(startupId);
             await get().fetchWatchlist();
             return result.saved;
         } catch (err) {
@@ -32,7 +31,7 @@ export const useInvestorStore = create((set, get) => ({
     expressInterest: async (startupId, notes) => {
         set({ isLoading: true, error: null });
         try {
-            const interest = await investorService.expressInterest(startupId, notes);
+            const interest = await investorApi.expressInterest(startupId, notes);
             set((state) => ({
                 interests: [interest, ...state.interests],
                 isLoading: false
@@ -47,7 +46,7 @@ export const useInvestorStore = create((set, get) => ({
     fetchInvestorInterests: async () => {
         set({ isLoading: true, error: null });
         try {
-            const interests = await investorService.fetchInterests();
+            const interests = await investorApi.fetchInterests();
             set({ interests, isLoading: false });
         } catch (err) {
             set({ error: err.message, isLoading: false });

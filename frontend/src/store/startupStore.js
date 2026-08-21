@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import startupService from '../services/startupService';
+import { startupApi } from '../api/api';
 
 export const useStartupStore = create((set, get) => ({
     startups: [],
@@ -10,7 +10,7 @@ export const useStartupStore = create((set, get) => ({
     fetchStartups: async (filters = {}) => {
         set({ isLoading: true, error: null });
         try {
-            const startups = await startupService.fetchAll(filters);
+            const startups = await startupApi.fetchAll(filters);
             set({ startups, isLoading: false });
         } catch (err) {
             set({ error: err.message, isLoading: false });
@@ -20,7 +20,7 @@ export const useStartupStore = create((set, get) => ({
     fetchStartupDetails: async (id) => {
         set({ isLoading: true, error: null });
         try {
-            const currentStartup = await startupService.fetchById(id);
+            const currentStartup = await startupApi.fetchById(id);
             set({ currentStartup, isLoading: false });
             return currentStartup;
         } catch (err) {
@@ -32,7 +32,7 @@ export const useStartupStore = create((set, get) => ({
     createStartup: async (startupData) => {
         set({ isLoading: true, error: null });
         try {
-            const startup = await startupService.create(startupData);
+            const startup = await startupApi.create(startupData);
             set((state) => ({
                 startups: [startup, ...state.startups],
                 isLoading: false
@@ -47,7 +47,7 @@ export const useStartupStore = create((set, get) => ({
     updateStartup: async (id, updateData) => {
         set({ isLoading: true, error: null });
         try {
-            const updated = await startupService.update(id, updateData);
+            const updated = await startupApi.update(id, updateData);
             set((state) => ({
                 startups: state.startups.map(s => s.id === id ? updated : s),
                 currentStartup: state.currentStartup?.id === id ? updated : state.currentStartup,
@@ -62,7 +62,7 @@ export const useStartupStore = create((set, get) => ({
 
     addMember: async (startupId, memberData) => {
         try {
-            const member = await startupService.addMember(startupId, memberData);
+            const member = await startupApi.addMember(startupId, memberData);
             set((state) => {
                 if (state.currentStartup?.id === startupId) {
                     const members = [...(state.currentStartup.members || []), member];
@@ -80,7 +80,7 @@ export const useStartupStore = create((set, get) => ({
 
     removeMember: async (startupId, memberId) => {
         try {
-            await startupService.removeMember(startupId, memberId);
+            await startupApi.removeMember(startupId, memberId);
             set((state) => {
                 if (state.currentStartup?.id === startupId) {
                     const members = (state.currentStartup.members || []).filter(m => m.id !== memberId);
@@ -91,6 +91,23 @@ export const useStartupStore = create((set, get) => ({
                 return {};
             });
         } catch (err) {
+            throw err;
+        }
+    },
+
+    uploadPitchDeck: async (startupId, file) => {
+        set({ isLoading: true, error: null });
+        try {
+            const { url } = await startupApi.uploadFile(file, 'pitch-decks');
+            const updated = await startupApi.update(startupId, { pitch_deck_url: url });
+            set((state) => ({
+                startups: state.startups.map(s => s.id === startupId ? updated : s),
+                currentStartup: state.currentStartup?.id === startupId ? updated : state.currentStartup,
+                isLoading: false
+            }));
+            return updated;
+        } catch (err) {
+            set({ error: err.message, isLoading: false });
             throw err;
         }
     }
