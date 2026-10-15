@@ -8,12 +8,11 @@ export const DOMAINS = [
     "EdTech"
 ];
 
+// Must match the stages persisted by the API: idea | mvp | scaling.
 export const STAGES = [
     "All",
     "Idea",
-    "Prototype",
     "MVP",
-    "Seed",
     "Scale"
 ];
 

@@ -5,112 +5,65 @@ import { useAuthStore } from "@/store/authStore";
 const api = axios.create({
     baseURL: env.apiUrl,
     withCredentials: true,
-    headers: {
-        "Content-Type": "application/json"
-    }
+    headers: { "Content-Type": "application/json" }
 });
 
-// Request Interceptor: Attach access token from store or localStorage to Authorization header
-api.interceptors.request.use(
-    (config) => {
-        const token = useAuthStore.getState().accessToken || localStorage.getItem("accessToken");
-        if (token && typeof token === "string" && token !== "undefined" && token !== "null" && token.trim()) {
-            config.headers.Authorization = `Bearer ${token.trim()}`;
-        } else {
-            delete config.headers.Authorization;
-        }
-        return config;
-    },
-    (error) => Promise.reject(error)
-);
+// The access token lives in the auth store (mirrored to localStorage); the refresh token is an httpOnly cookie.
+api.interceptors.request.use((config) => {
+    const token = useAuthStore.getState().accessToken;
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+    } else {
+        delete config.headers.Authorization;
+    }
+    return config;
+});
 
-let isRefreshing = false;
-let failedQueue = [];
+const AUTH_LIFECYCLE_PATHS = ["/auth/login", "/auth/register", "/auth/refresh", "/auth/logout"];
 
-const processQueue = (error, token = null) => {
-    failedQueue.forEach((prom) => {
-        if (error) {
-            prom.reject(error);
-        } else {
-            prom.resolve(token);
-        }
-    });
-    failedQueue = [];
-};
+// One refresh at a time: concurrent 401s wait on the same promise instead of each triggering a refresh.
+let refreshPromise = null;
 
-// Response Interceptor: Handle expired/invalid tokens by rotating them
+function refreshSession() {
+    if (!refreshPromise) {
+        refreshPromise = axios
+            .post(`${env.apiUrl}/auth/refresh`, {}, { withCredentials: true })
+            .then((res) => {
+                useAuthStore.getState().setSession(res.data.user, res.data.accessToken);
+                return res.data.accessToken;
+            })
+            .finally(() => {
+                refreshPromise = null;
+            });
+    }
+    return refreshPromise;
+}
+
 api.interceptors.response.use(
     (response) => response,
     async (error) => {
-        const originalRequest = error.config;
-        if (!originalRequest) return Promise.reject(error);
+        const original = error.config;
+        // Only an expired/invalid session (401) triggers a refresh. 403 is an authorization decision and is final.
+        if (!original || error.response?.status !== 401) return Promise.reject(error);
 
-        // Circuit Breaker: Never retry auth lifecycle endpoints or requests that already retried
-        const isAuthEndpoint = originalRequest.url && (
-            originalRequest.url.includes("/auth/login") ||
-            originalRequest.url.includes("/auth/register") ||
-            originalRequest.url.includes("/auth/refresh") ||
-            originalRequest.url.includes("/auth/logout")
-        );
+        const isLifecycleCall = AUTH_LIFECYCLE_PATHS.some((p) => original.url?.includes(p));
+        if (isLifecycleCall || original._retry) return Promise.reject(error);
+        original._retry = true;
 
-        if (isAuthEndpoint || originalRequest._retry) {
+        try {
+            const token = await refreshSession();
+            original.headers.Authorization = `Bearer ${token}`;
+            return api(original);
+        } catch {
+            useAuthStore.getState().clearSession();
             return Promise.reject(error);
         }
-
-        if (error.response?.status === 401 || error.response?.status === 403) {
-            originalRequest._retry = true;
-
-            if (isRefreshing) {
-                return new Promise((resolve, reject) => {
-                    failedQueue.push({ resolve, reject });
-                })
-                    .then((token) => {
-                        originalRequest.headers.Authorization = `Bearer ${token}`;
-                        return api(originalRequest);
-                    })
-                    .catch((err) => Promise.reject(err));
-            }
-
-            isRefreshing = true;
-
-            try {
-                const refreshResponse = await axios.post(
-                    `${env.apiUrl}/auth/refresh`,
-                    {},
-                    { withCredentials: true }
-                );
-
-                const { accessToken, user } = refreshResponse.data;
-                if (accessToken) {
-                    localStorage.setItem("accessToken", accessToken);
-                }
-                useAuthStore.getState().setSession(user, accessToken);
-
-                processQueue(null, accessToken);
-                isRefreshing = false;
-
-                originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-                return api(originalRequest);
-            } catch (refreshError) {
-                processQueue(refreshError, null);
-                isRefreshing = false;
-                
-                // Direct state reset without triggering POST /auth/logout
-                localStorage.removeItem("accessToken");
-                useAuthStore.setState({
-                    user: null,
-                    accessToken: null,
-                    isAuthenticated: false,
-                    isLoading: false,
-                    error: null
-                });
-
-                return Promise.reject(refreshError);
-            }
-        }
-
-        return Promise.reject(error);
     }
 );
+
+/** Extracts the most useful message from an axios error. */
+export function errorMessage(err, fallback = "Something went wrong") {
+    return err?.response?.data?.error || err?.message || fallback;
+}
 
 export default api;

@@ -1,75 +1,56 @@
-const { supabase, getAuthClient } = require('../config/supabase');
-const { mapRoleToClient } = require('../utils/constants');
-const { verifyToken } = require('../utils/jwt');
+const { getAdminClient } = require('../config/supabase');
+const { TABLES } = require('../config/schema');
+const { normalizeRole } = require('../utils/constants');
+const { toApiError, isAuthServiceFailure } = require('../utils/db');
 const ApiError = require('../utils/ApiError');
 
+/**
+ * Verifies the Supabase access token sent as `Authorization: Bearer <token>` and attaches
+ * `req.authUser` (the Supabase auth user) and `req.user` (identity + role from public.profiles).
+ * There is deliberately no local-token fallback: only Supabase-issued sessions are accepted.
+ */
 async function authenticate(req, res, next) {
-    const authHeader = req.headers.authorization;
-    let token = authHeader?.split(' ')[1];
-
-    if (!token && req.cookies) {
-        token = req.cookies.accessToken || req.cookies.refreshToken;
-    }
-
-    if (!token) {
-        return next(new ApiError(401, 'Unauthorized: Access token is missing'));
-    }
-
     try {
-        const authClient = getAuthClient();
-        const { data: { user }, error } = await authClient.auth.getUser(token);
-
-        if (!error && user) {
-            // Ensure profile exists in profiles table
-            const authService = require('../modules/auth/service');
-            const profile = await authService.ensureUserProfile(user);
-
-            req.user = {
-                id: user.id,
-                email: user.email,
-                username: profile?.username || '',
-                role: mapRoleToClient(profile?.role || user.user_metadata?.role),
-                name: profile?.full_name || user.user_metadata?.full_name || 'User',
-                avatar_url: profile?.avatar_url || profile?.profile_picture || null,
-                profile
-            };
-            return next();
+        const header = req.headers.authorization || '';
+        const [scheme, token] = header.split(' ');
+        if (scheme !== 'Bearer' || !token) {
+            throw new ApiError(401, 'Unauthorized: access token is missing');
         }
-    } catch (e) {
-        // Fallthrough to local JWT check
+
+        const db = getAdminClient();
+        const { data, error } = await db.auth.getUser(token);
+        if (error || !data?.user) {
+            if (isAuthServiceFailure(error) && error.status !== 401) throw new ApiError(502, 'Authentication service unavailable');
+            throw new ApiError(401, 'Unauthorized: invalid or expired session');
+        }
+
+        const result = await db.from(TABLES.profiles).select('id, username, full_name, role, avatar_url').eq('id', data.user.id).maybeSingle();
+        if (result.error) throw toApiError(result.error, 'Load profile');
+        const profile = result.data;
+
+        req.accessToken = token;
+        req.authUser = data.user;
+        req.user = {
+            id: data.user.id,
+            email: data.user.email,
+            username: profile?.username || '',
+            name: profile?.full_name || '',
+            role: normalizeRole(profile?.role),
+            avatar_url: profile?.avatar_url || null,
+            hasProfile: Boolean(profile)
+        };
+        next();
+    } catch (err) {
+        next(err);
     }
-
-    const decoded = verifyToken(token);
-    if (!decoded) {
-        return next(new ApiError(401, 'Unauthorized: Invalid or expired session'));
-    }
-
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .or(`id.eq.${decoded.id},email.eq.${decoded.email}`)
-        .maybeSingle();
-
-    req.user = {
-        id: decoded.id || profile?.id,
-        email: decoded.email || profile?.email,
-        username: profile?.username || '',
-        role: mapRoleToClient(profile?.role || decoded.role),
-        name: profile?.full_name || profile?.name || 'User',
-        avatar_url: profile?.avatar_url || profile?.profile_picture || null,
-        profile
-    };
-
-    next();
 }
 
+/** Authorization gate: the authenticated user's profile role must be one of `roles` (canonical names). */
 function allowedRoles(roles) {
     return (req, res, next) => {
-        if (!req.user) {
-            return next(new ApiError(401, 'Unauthorized: User not authenticated'));
-        }
-        if (!roles.includes(req.user.role)) {
-            return next(new ApiError(403, `Forbidden: Access restricted to roles: [${roles.join(', ')}]`));
+        if (!req.user) return next(new ApiError(401, 'Unauthorized: user not authenticated'));
+        if (!req.user.role || !roles.includes(req.user.role)) {
+            return next(new ApiError(403, `Forbidden: restricted to ${roles.join(' / ')}`));
         }
         next();
     };

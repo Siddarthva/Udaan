@@ -2,141 +2,129 @@ import React, { useState } from "react";
 import Modal from "./Modal";
 import Button from "./Button";
 import Input from "./Input";
-import { DollarSign, CreditCard, ShieldCheck, CheckCircle2, Loader2, Landmark, Wallet, QrCode } from "lucide-react";
+import { CreditCard, CheckCircle2, Loader2, Landmark, QrCode, AlertTriangle } from "lucide-react";
 import { useInvestStartupMutation } from "@/api/hooks";
+import { errorMessage } from "@/api/axios";
+import { formatCurrency } from "@/utils/helpers";
 import toast from "react-hot-toast";
 
+const PAYMENT_OPTIONS = [
+    { id: "UPI", label: "UPI (simulated)", icon: QrCode },
+    { id: "CARD", label: "Card (simulated)", icon: CreditCard },
+    { id: "NETBANKING", label: "Net Banking (simulated)", icon: Landmark }
+];
+
+/**
+ * Funding DEMO. No payment is taken and nothing is stored: the schema has no transaction ledger, so the
+ * startup's funding totals are never changed by this flow. Real interest is recorded via "Express interest".
+ */
 export default function InvestmentModal({ isOpen, onClose, startup }) {
-    const [amount, setAmount] = useState("1000");
+    const [amount, setAmount] = useState("");
     const [paymentMethod, setPaymentMethod] = useState("UPI");
     const [agreedTerms, setAgreedTerms] = useState(false);
-    const [processingStep, setProcessingStep] = useState(0); // 0: Idle, 1: Processing, 2: Success
-    const [transactionResult, setTransactionResult] = useState(null);
+    const [step, setStep] = useState("form"); // form | processing | done
+    const [receipt, setReceipt] = useState(null);
 
     const investMutation = useInvestStartupMutation();
+    const amountNumber = Number(amount);
+    const canSubmit = agreedTerms && Number.isFinite(amountNumber) && amountNumber > 0;
 
-    const paymentOptions = [
-        { id: "UPI", label: "UPI (Google Pay / PhonePe)", icon: QrCode },
-        { id: "Credit Card", label: "Credit Card", icon: CreditCard },
-        { id: "Debit Card", label: "Debit Card", icon: CreditCard },
-        { id: "Net Banking", label: "Net Banking", icon: Landmark },
-        { id: "Wallet", label: "Digital Wallet", icon: Wallet }
-    ];
-
-    const amountPresets = [100, 500, 1000, 5000];
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        if (!amount || Number(amount) <= 0 || !agreedTerms || !startup) return;
-
-        setProcessingStep(1);
-
-        // Simulate multi-step processing animation
-        setTimeout(async () => {
-            try {
-                const res = await investMutation.mutateAsync({
-                    id: startup.id,
-                    data: {
-                        amount: Number(amount),
-                        payment_method: paymentMethod
-                    }
-                });
-
-                setTransactionResult(res);
-                setProcessingStep(2);
-                toast.success(`Investment of $${Number(amount).toLocaleString()} processed!`);
-            } catch (err) {
-                setProcessingStep(0);
-                toast.error(err.message || "Failed to process investment transaction");
-            }
-        }, 1200);
+    const reset = () => {
+        setStep("form");
+        setReceipt(null);
+        setAmount("");
+        setAgreedTerms(false);
     };
 
     const handleClose = () => {
-        setProcessingStep(0);
-        setTransactionResult(null);
+        reset();
         onClose();
     };
 
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (!canSubmit || !startup) return;
+        setStep("processing");
+        try {
+            const res = await investMutation.mutateAsync({
+                id: startup.id,
+                data: { amount: amountNumber, payment_method: paymentMethod, accepted_terms: true }
+            });
+            setReceipt(res);
+            setStep("done");
+        } catch (err) {
+            setStep("form");
+            toast.error(errorMessage(err, "Simulation failed"));
+        }
+    };
+
     return (
-        <Modal isOpen={isOpen} onClose={handleClose} title={processingStep === 2 ? "Transaction Confirmation" : `Invest in ${startup?.title || 'Startup'}`}>
-            {processingStep === 1 ? (
+        <Modal isOpen={isOpen} onClose={handleClose} title={step === "done" ? "Simulation Receipt" : `Fund ${startup?.title || "Startup"} (Demo)`}>
+            {step === "processing" ? (
                 <div className="py-12 flex flex-col items-center justify-center space-y-4 text-center">
                     <Loader2 className="w-12 h-12 text-indigo-600 animate-spin" />
                     <div>
-                        <h3 className="font-bold text-gray-900 text-sm">Processing Capital Investment</h3>
-                        <p className="text-xs text-gray-500 mt-1">Connecting to simulated payment gateway ({paymentMethod})...</p>
+                        <h3 className="font-bold text-gray-900 text-sm">Running funding simulation</h3>
+                        <p className="text-xs text-gray-500 mt-1">No real payment is being made.</p>
                     </div>
                 </div>
-            ) : processingStep === 2 ? (
-                <div className="py-6 space-y-6 text-center">
-                    <div className="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto">
+            ) : step === "done" ? (
+                <div className="py-4 space-y-5 text-center">
+                    <div className="w-14 h-14 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto">
                         <CheckCircle2 size={32} />
                     </div>
                     <div>
-                        <h3 className="text-lg font-bold text-gray-900">Capital Transfer Successful!</h3>
-                        <p className="text-xs text-gray-500 mt-1">Transaction ref: <strong>{transactionResult?.transaction_id}</strong></p>
+                        <h3 className="text-lg font-bold text-gray-900">Simulation complete</h3>
+                        <p className="text-xs text-gray-500 mt-1">Simulated reference: <strong>{receipt?.reference}</strong></p>
                     </div>
-
                     <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 text-left space-y-2 text-xs">
-                        <div className="flex justify-between">
-                            <span className="text-gray-500">Startup:</span>
-                            <span className="font-semibold text-gray-900">{startup?.title}</span>
-                        </div>
-                        <div className="flex justify-between">
-                            <span className="text-gray-500">Investment Amount:</span>
-                            <span className="font-bold text-emerald-600">${Number(amount).toLocaleString()}</span>
-                        </div>
-                        <div className="flex justify-between">
-                            <span className="text-gray-500">Payment Channel:</span>
-                            <span className="font-semibold text-gray-900">{paymentMethod}</span>
-                        </div>
-                        <div className="flex justify-between pt-2 border-t border-gray-200">
-                            <span className="text-gray-500">Status:</span>
-                            <span className="font-bold text-emerald-600 uppercase">Completed</span>
-                        </div>
+                        <div className="flex justify-between"><span className="text-gray-500">Startup</span><span className="font-semibold text-gray-900">{receipt?.startup?.title}</span></div>
+                        <div className="flex justify-between"><span className="text-gray-500">Amount (simulated)</span><span className="font-bold text-gray-900">{formatCurrency(receipt?.amount)}</span></div>
+                        <div className="flex justify-between"><span className="text-gray-500">Method</span><span className="font-semibold text-gray-900">{receipt?.payment_method}</span></div>
+                        <div className="flex justify-between pt-2 border-t border-gray-200"><span className="text-gray-500">Status</span><span className="font-bold text-amber-600 uppercase">Demo only</span></div>
                     </div>
-
-                    <Button onClick={handleClose} className="w-full">
-                        Done & Close
-                    </Button>
+                    <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-3 text-left">
+                        {receipt?.notice} Funding totals were not changed.
+                    </p>
+                    <Button onClick={handleClose} className="w-full">Close</Button>
                 </div>
             ) : (
                 <form onSubmit={handleSubmit} className="space-y-5">
-                    {/* Amount Input & Presets */}
-                    <div>
-                        <label className="block text-xs font-semibold text-gray-700 mb-1.5">Investment Amount ($)</label>
-                        <Input
-                            type="number"
-                            icon={DollarSign}
-                            value={amount}
-                            onChange={(e) => setAmount(e.target.value)}
-                            placeholder="Enter investment amount..."
-                            required
-                            min="10"
-                        />
-
-                        <div className="flex gap-2 mt-2">
-                            {amountPresets.map((preset) => (
-                                <button
-                                    type="button"
-                                    key={preset}
-                                    onClick={() => setAmount(preset.toString())}
-                                    className={`px-2.5 py-1 text-xs font-semibold rounded-md border transition-all ${
-                                        amount === preset.toString() ? "bg-gray-900 text-white border-gray-900" : "bg-gray-50 text-gray-700 hover:bg-gray-100"
-                                    }`}
-                                >
-                                    ${preset}
-                                </button>
-                            ))}
-                        </div>
+                    <div className="flex items-start gap-2 text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-3">
+                        <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+                        <span>This is a demonstration. No money moves and nothing is recorded against the startup's funding.</span>
                     </div>
 
-                    {/* Dummy Payment Methods */}
+                    {startup && (
+                        <div className="grid grid-cols-2 gap-3 text-xs bg-gray-50 border border-gray-200 rounded-lg p-3">
+                            <div>
+                                <p className="text-[10px] font-semibold text-gray-400 uppercase">Funding goal</p>
+                                <p className="font-bold text-gray-900">{formatCurrency(startup.funding_required)}</p>
+                            </div>
+                            <div>
+                                <p className="text-[10px] font-semibold text-gray-400 uppercase">Received so far</p>
+                                <p className="font-bold text-gray-900">{formatCurrency(startup.funding_received)}</p>
+                            </div>
+                        </div>
+                    )}
+
                     <div>
-                        <label className="block text-xs font-semibold text-gray-700 mb-1.5">Select Payment Method</label>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1.5">Amount (₹ Lakhs)</label>
+                        <Input
+                            type="number"
+                            value={amount}
+                            onChange={(e) => setAmount(e.target.value)}
+                            placeholder="e.g. 10"
+                            min="0"
+                            step="any"
+                            required
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1.5">Simulated payment method</label>
                         <div className="space-y-2">
-                            {paymentOptions.map((opt) => {
+                            {PAYMENT_OPTIONS.map((opt) => {
                                 const Icon = opt.icon;
                                 return (
                                     <label
@@ -163,7 +151,6 @@ export default function InvestmentModal({ isOpen, onClose, startup }) {
                         </div>
                     </div>
 
-                    {/* Terms & Conditions */}
                     <div className="flex items-start gap-2 pt-2 border-t border-gray-100">
                         <input
                             type="checkbox"
@@ -171,19 +158,15 @@ export default function InvestmentModal({ isOpen, onClose, startup }) {
                             checked={agreedTerms}
                             onChange={(e) => setAgreedTerms(e.target.checked)}
                             className="mt-0.5 text-indigo-600 rounded focus:ring-indigo-500"
-                            required
                         />
                         <label htmlFor="terms" className="text-[11px] text-gray-500 leading-tight">
-                            I understand this is a simulated SaaS funding workflow with zero real capital charge. I accept the UDAAN Venture Agreement terms.
+                            I understand this is a demo: no real payment is made, no funding is recorded, and the reference shown is simulated.
                         </label>
                     </div>
 
-                    {/* Action Buttons */}
                     <div className="flex justify-end gap-2 pt-2">
                         <Button variant="outline" type="button" onClick={handleClose}>Cancel</Button>
-                        <Button type="submit" disabled={!agreedTerms || !amount || Number(amount) <= 0}>
-                            Proceed & Invest ${Number(amount || 0).toLocaleString()}
-                        </Button>
+                        <Button type="submit" disabled={!canSubmit}>Run simulation</Button>
                     </div>
                 </form>
             )}

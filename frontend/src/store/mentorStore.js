@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import { mentorApi } from '../api/api';
+import { errorMessage } from '../api/axios';
 
-export const useMentorStore = create((set, get) => ({
+export const useMentorStore = create((set) => ({
     requests: [],
     isLoading: false,
     error: null,
@@ -16,7 +17,7 @@ export const useMentorStore = create((set, get) => ({
             }));
             return request;
         } catch (err) {
-            set({ error: err.message, isLoading: false });
+            set({ error: errorMessage(err), isLoading: false });
             throw err;
         }
     },
@@ -27,7 +28,7 @@ export const useMentorStore = create((set, get) => ({
             const requests = await mentorApi.fetchRequests();
             set({ requests, isLoading: false });
         } catch (err) {
-            set({ error: err.message, isLoading: false });
+            set({ error: errorMessage(err), isLoading: false });
         }
     },
 
@@ -39,7 +40,7 @@ export const useMentorStore = create((set, get) => ({
             }));
             return updated;
         } catch (err) {
-            set({ error: err.message });
+            set({ error: errorMessage(err) });
             throw err;
         }
     }

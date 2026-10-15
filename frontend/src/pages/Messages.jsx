@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useAuthStore } from "@/store/authStore";
-import { useConversationsQuery, useMessageRequestsQuery, useUpdateRequestStatusMutation, useMessagesQuery, useSendMessageMutation } from "@/api/hooks";
+import { useConversationsQuery, useMessageRequestsQuery, useUpdateRequestStatusMutation, useMessagesQuery, useSendMessageMutation, useMarkConversationReadMutation } from "@/api/hooks";
+import { errorMessage } from "@/api/axios";
 import { Send, MessageSquare, Inbox, UserPlus, Check, X, CheckCheck } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -11,11 +12,12 @@ export default function Messages() {
     const [inputText, setInputText] = useState("");
     const messagesEndRef = useRef(null);
 
-    const { data: conversations = [], isLoading: loadingConvs, refetch: refetchConvs } = useConversationsQuery();
+    const { data: conversations = [], isLoading: loadingConvs, isError: convsError, error: convsErr, refetch: refetchConvs } = useConversationsQuery();
     const { data: requests = [], isLoading: loadingRequests, refetch: refetchRequests } = useMessageRequestsQuery();
     const { data: messages = [], isLoading: loadingMsgs, refetch: refetchMsgs } = useMessagesQuery(selectedConv?.id);
 
     const sendMutation = useSendMessageMutation();
+    const markReadMutation = useMarkConversationReadMutation();
     const updateRequestMutation = useUpdateRequestStatusMutation();
 
     useEffect(() => {
@@ -28,6 +30,15 @@ export default function Messages() {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages]);
 
+    // Persist read state once the open conversation actually contains unread messages from the other person.
+    const hasUnreadFromOther = messages.some((m) => m.sender_id !== user?.id && !m.is_read);
+    useEffect(() => {
+        if (selectedConv?.id && hasUnreadFromOther && !markReadMutation.isPending) {
+            markReadMutation.mutate(selectedConv.id);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedConv?.id, hasUnreadFromOther]);
+
     const handleSend = async (e) => {
         e.preventDefault();
         if (!inputText.trim() || !selectedConv) return;
@@ -38,13 +49,13 @@ export default function Messages() {
         try {
             await sendMutation.mutateAsync({
                 conversation_id: selectedConv.id,
-                receiver_id: selectedConv.recipient?.id,
-                content: text
+                message: text
             });
             refetchMsgs();
             refetchConvs();
         } catch (err) {
-            toast.error(err.message || "Failed to send message");
+            setInputText(text);
+            toast.error(errorMessage(err, "Failed to send message"));
         }
     };
 
@@ -64,7 +75,7 @@ export default function Messages() {
                 }
             }
         } catch (err) {
-            toast.error(err.message || "Failed to update request");
+            toast.error(errorMessage(err, "Failed to update request"));
         }
     };
 
@@ -102,6 +113,12 @@ export default function Messages() {
                     {activeTab === "inbox" ? (
                         loadingConvs ? (
                             <div className="p-4 text-center text-sm text-gray-500">Loading chats...</div>
+                        ) : convsError ? (
+                            <div className="p-6 text-center space-y-2">
+                                <p className="text-sm font-semibold text-red-700">Couldn't load conversations</p>
+                                <p className="text-xs text-gray-500">{errorMessage(convsErr)}</p>
+                                <button onClick={() => refetchConvs()} className="text-xs font-semibold text-indigo-600 hover:underline">Try again</button>
+                            </div>
                         ) : conversations.length === 0 ? (
                             <div className="p-8 text-center text-gray-500">
                                 <MessageSquare className="w-8 h-8 mx-auto mb-2 text-gray-400" />
@@ -134,6 +151,9 @@ export default function Messages() {
                                                 </span>
                                             </div>
                                             <p className="text-xs text-gray-500 truncate mt-1">{conv.last_message || "No messages yet"}</p>
+                                            {conv.unread_count > 0 && (
+                                                <span className="inline-block mt-1 px-1.5 py-0.5 bg-indigo-600 text-white text-[10px] font-bold rounded-full">{conv.unread_count}</span>
+                                            )}
                                         </div>
                                     </button>
                                 );
@@ -164,12 +184,14 @@ export default function Messages() {
                                             
                                             <div className="flex items-center gap-2 mt-3">
                                                 <button
+                                                    disabled={updateRequestMutation.isPending}
                                                     onClick={() => handleRequestAction(req.id, "accept")}
                                                     className="px-3 py-1 bg-indigo-600 text-white text-xs font-semibold rounded-md hover:bg-indigo-700 flex items-center gap-1 transition-colors"
                                                 >
                                                     <Check className="w-3.5 h-3.5" /> Accept
                                                 </button>
                                                 <button
+                                                    disabled={updateRequestMutation.isPending}
                                                     onClick={() => handleRequestAction(req.id, "reject")}
                                                     className="px-3 py-1 bg-gray-100 text-gray-700 text-xs font-semibold rounded-md hover:bg-gray-200 flex items-center gap-1 transition-colors"
                                                 >
@@ -218,7 +240,7 @@ export default function Messages() {
                                                         : "bg-white border border-gray-200 text-gray-900 rounded-bl-none"
                                                 }`}
                                             >
-                                                <p>{msg.content}</p>
+                                                <p>{msg.message}</p>
                                                 <div className={`flex items-center justify-end gap-1 text-[10px] mt-1 ${isMe ? "text-indigo-200" : "text-gray-400"}`}>
                                                     <span>{new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                                     {isMe && <CheckCheck className="w-3 h-3" />}

@@ -1,454 +1,559 @@
-const { supabase } = require('../../config/supabase');
-const { mapStageToDb, mapStageToClient } = require('../../utils/constants');
+const { getAdminClient } = require('../../config/supabase');
+const { TABLES, STATUS, cols } = require('../../config/schema');
+const { unwrap, assertUuid, toApiError } = require('../../utils/db');
+const { mapStageToDb, mapStageToClient, ROLES } = require('../../utils/constants');
 const ApiError = require('../../utils/ApiError');
-const crypto = require('crypto');
+const { loadPublicProfiles } = require('../common/profiles');
+const notificationsService = require('../notifications/service');
 
-const memoryStartups = new Map();
-const memoryMembers = new Map();
-const memoryInterests = new Map();
-const memoryMentorRequests = new Map();
-const memorySaved = new Map();
-const memoryInvestments = [];
-const memoryActivities = [];
+const STARTUP_COLUMNS = cols('startups');
+const MAX_LIST = 100;
+
+function sanitizeTerm(term) {
+    return String(term || '').replace(/[%_,()*\\"']/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 60);
+}
+
+/** Shapes a startups row for the API. `raised` is kept as an alias of funding_received for older clients. */
+function formatStartup(row, owner) {
+    const required = Number(row.funding_required) || 0;
+    const received = Number(row.funding_received) || 0;
+    return {
+        id: row.id,
+        owner_id: row.founder_id,
+        founder_id: row.founder_id,
+        title: row.title,
+        description: row.description || '',
+        domain: row.domain,
+        stage: mapStageToClient(row.stage),
+        status: row.status ?? null,
+        funding_required: required,
+        funding_received: received,
+        raised: received,
+        funding_progress: required > 0 ? Math.min(100, Math.round((received / required) * 100)) : 0,
+        team_size: row.team_size ?? null,
+        pitch_deck_url: row.pitch_deck_url || '',
+        logo_url: row.logo_url || '',
+        owner_name: owner?.full_name || owner?.username || null,
+        owner_username: owner?.username || null,
+        linkedin_url: owner?.linkedin_url || '',
+        created_at: row.created_at || null
+    };
+}
 
 class StartupService {
-    async listStartups(filters = {}) {
-        let dbStartups = [];
-        try {
-            let query = supabase.from('startups').select('*, profiles(*)');
-            if (filters.domain && filters.domain !== 'All') query = query.eq('industry', filters.domain);
-            if (filters.stage && filters.stage !== 'All') query = query.eq('stage', mapStageToDb(filters.stage));
-            if (filters.search) query = query.or(`startup_name.ilike.%${filters.search}%,description.ilike.%${filters.search}%`);
-
-            const { data, error } = await query.order('created_at', { ascending: false });
-            if (!error && data) dbStartups = data;
-        } catch (e) {
-            // Supabase list
-        }
-
-        const combined = new Map();
-        dbStartups.forEach(s => combined.set(s.id, s));
-        memoryStartups.forEach((s, id) => {
-            if (!combined.has(id)) combined.set(id, s);
-        });
-
-        let result = Array.from(combined.values());
-
-        if (filters.domain && filters.domain !== 'All') {
-            result = result.filter(s => s.industry === filters.domain || s.domain === filters.domain);
-        }
-        if (filters.stage && filters.stage !== 'All') {
-            result = result.filter(s => mapStageToClient(s.stage) === filters.stage);
-        }
-        if (filters.search) {
-            const term = filters.search.toLowerCase();
-            result = result.filter(s => (s.startup_name || s.title || '').toLowerCase().includes(term) || (s.description || '').toLowerCase().includes(term));
-        }
-
-        return result.map(s => ({
-            id: s.id,
-            owner_id: s.founder_id || s.owner_id,
-            title: s.startup_name || s.title,
-            description: s.description || '',
-            domain: s.industry || s.domain,
-            stage: mapStageToClient(s.stage),
-            funding_required: s.funding_required || 0,
-            raised: s.funding_raised || s.raised || 0,
-            pitch_deck_url: s.pitch_deck_url || '',
-            logo_url: s.logo_url || '',
-            cover_image_url: s.cover_image_url || '',
-            owner_name: s.profiles?.full_name || s.owner_name || '',
-            owner_email: s.profiles?.email || s.owner_email || '',
-            linkedin_url: s.profiles?.linkedin_url || s.linkedin_url || '',
-            whatsapp_number: s.profiles?.whatsapp_number || s.whatsapp_number || '',
-            created_at: s.created_at || new Date().toISOString(),
-            updated_at: s.updated_at || new Date().toISOString()
-        }));
+    get db() {
+        return getAdminClient();
     }
 
-    async getStartupDetails(id) {
-        let s = memoryStartups.get(id);
+    // ---------- reads ----------
 
-        if (!s) {
-            try {
-                const { data } = await supabase.from('startups').select('*, profiles(*)').eq('id', id).single();
-                if (data) s = data;
-            } catch (e) {
-                // Supabase details
-            }
+    async loadStartupRow(startupId) {
+        assertUuid(startupId, 'startup id');
+        const rows = unwrap(
+            await this.db.from(TABLES.startups).select(STARTUP_COLUMNS).eq('id', startupId).limit(1),
+            'Load startup'
+        );
+        if (!rows || rows.length === 0) throw new ApiError(404, 'Startup not found');
+        return rows[0];
+    }
+
+    assertOwner(startup, userId) {
+        if (startup.founder_id !== userId) throw new ApiError(403, 'Only the startup owner can perform this action');
+    }
+
+    async listStartups(filters = {}, viewerId = null) {
+        let query = this.db.from(TABLES.startups).select(STARTUP_COLUMNS);
+
+        if (filters.owner === 'me') {
+            if (!viewerId) throw new ApiError(401, 'Authentication required');
+            query = query.eq('founder_id', viewerId);
+        } else if (filters.owner) {
+            query = query.eq('founder_id', assertUuid(filters.owner, 'owner id'));
         }
-
-        if (!s) throw new ApiError(404, 'Startup not found');
-
-        let members = (memoryMembers.get(id) || []);
-        let documents = [];
-
-        try {
-            const { data: dbMembers } = await supabase.from('startup_members').select('*, profiles:user_id(*)').eq('startup_id', id);
-            if (dbMembers && dbMembers.length > 0) {
-                members = dbMembers.map(m => ({
-                    id: m.id,
-                    user_id: m.user_id,
-                    name: m.profiles?.full_name || 'Team Member',
-                    role: m.role,
-                    avatar_url: m.profiles?.profile_picture || '',
-                    equity_percentage: m.equity_percentage
-                }));
-            }
-            const { data: dbDocs } = await supabase.from('startup_documents').select('*').eq('startup_id', id);
-            if (dbDocs) documents = dbDocs;
-        } catch (e) {
-            // Supabase members/docs
+        if (filters.domain && filters.domain !== 'All') query = query.eq('domain', filters.domain);
+        if (filters.stage && filters.stage !== 'All') {
+            const stage = mapStageToDb(filters.stage);
+            if (!stage) throw new ApiError(400, 'Invalid stage filter');
+            query = query.eq('stage', stage);
         }
+        const term = sanitizeTerm(filters.search);
+        if (term) query = query.or(`title.ilike.%${term}%,description.ilike.%${term}%`);
 
-        return {
-            id: s.id,
-            owner_id: s.founder_id || s.owner_id,
-            title: s.startup_name || s.title,
-            description: s.description || '',
-            domain: s.industry || s.domain,
-            stage: mapStageToClient(s.stage),
-            funding_required: s.funding_required || 0,
-            raised: s.funding_raised || s.raised || 0,
-            pitch_deck_url: s.pitch_deck_url || '',
-            logo_url: s.logo_url || '',
-            cover_image_url: s.cover_image_url || '',
-            owner_name: s.profiles?.full_name || s.owner_name || '',
-            owner_email: s.profiles?.email || s.owner_email || '',
-            linkedin_url: s.profiles?.linkedin_url || s.linkedin_url || '',
-            whatsapp_number: s.profiles?.whatsapp_number || s.whatsapp_number || '',
-            members,
-            documents
-        };
+        const rows = unwrap(await query.order('created_at', { ascending: false }).limit(MAX_LIST), 'List startups') || [];
+        const owners = await loadPublicProfiles(rows.map((r) => r.founder_id));
+        return rows.map((r) => formatStartup(r, owners.get(r.founder_id)));
+    }
+
+    async getMembers(startupId) {
+        const rows = unwrap(
+            await this.db.from(TABLES.startupMembers).select(cols('startupMembers')).eq('startup_id', startupId),
+            'Load startup members'
+        ) || [];
+        const profiles = await loadPublicProfiles(rows.map((m) => m.user_id));
+        return rows.map((m) => {
+            const p = profiles.get(m.user_id);
+            return {
+                id: m.id,
+                user_id: m.user_id,
+                name: p?.full_name || p?.username || null,
+                username: p?.username || null,
+                avatar_url: p?.avatar_url || null,
+                role: m.role
+            };
+        });
+    }
+
+    async getStartupDetails(startupId) {
+        const row = await this.loadStartupRow(startupId);
+        const owners = await loadPublicProfiles([row.founder_id]);
+        const members = await this.getMembers(startupId);
+        return { ...formatStartup(row, owners.get(row.founder_id)), members };
+    }
+
+    // ---------- writes ----------
+
+    buildStartupColumns(payload) {
+        const out = {};
+        if (payload.title !== undefined) out.title = payload.title;
+        if (payload.description !== undefined) out.description = payload.description;
+        if (payload.domain !== undefined) out.domain = payload.domain;
+        if (payload.stage !== undefined) {
+            const stage = mapStageToDb(payload.stage);
+            if (!stage) throw new ApiError(400, 'Invalid stage');
+            out.stage = stage;
+        }
+        if (payload.funding_required !== undefined) out.funding_required = payload.funding_required;
+        if (payload.team_size !== undefined) out.team_size = payload.team_size;
+        if (payload.pitch_deck_url !== undefined) out.pitch_deck_url = payload.pitch_deck_url;
+        if (payload.logo_url !== undefined) out.logo_url = payload.logo_url;
+        return out;
     }
 
     async createStartup(founderId, payload) {
-        const { title, description, domain, stage, funding_required, pitch_deck_url, logo_url } = payload;
-        if (!title || !domain || !stage) {
-            throw new ApiError(400, 'Title, domain, and stage are required');
+        const row = { ...this.buildStartupColumns(payload), founder_id: founderId };
+        const created = unwrap(
+            await this.db.from(TABLES.startups).insert(row).select(STARTUP_COLUMNS).single(),
+            'Create startup'
+        );
+
+        // Two independent writes are not atomic: if the membership row fails, remove the startup we just created.
+        const member = await this.db.from(TABLES.startupMembers).insert({ startup_id: created.id, user_id: founderId, role: 'Founder' });
+        if (member.error) {
+            console.error(`[STARTUP] Founder membership insert failed for ${created.id}: ${member.error.message}; rolling back startup`);
+            const rollback = await this.db.from(TABLES.startups).delete().eq('id', created.id);
+            if (rollback.error) console.error(`[STARTUP] Rollback of startup ${created.id} failed: ${rollback.error.message}`);
+            throw toApiError(member.error, 'Create startup membership');
         }
+        return this.getStartupDetails(created.id);
+    }
 
-        const dbStage = mapStageToDb(stage);
-        const startupId = crypto.randomUUID();
+    async updateStartup(userId, startupId, payload) {
+        const startup = await this.loadStartupRow(startupId);
+        this.assertOwner(startup, userId);
 
-        const localStartup = {
-            id: startupId,
-            founder_id: founderId,
-            startup_name: title,
-            description: description || '',
-            industry: domain,
-            stage: dbStage,
-            funding_required: Number(funding_required) || 0,
-            funding_raised: 0,
-            pitch_deck_url: pitch_deck_url || '',
-            logo_url: logo_url || '',
-            created_at: new Date().toISOString()
-        };
+        const changes = this.buildStartupColumns(payload);
+        if (Object.keys(changes).length === 0) throw new ApiError(400, 'No updatable fields supplied');
 
-        memoryStartups.set(startupId, localStartup);
-        memoryMembers.set(startupId, [{
-            id: crypto.randomUUID(),
-            user_id: founderId,
-            name: 'Founder',
-            role: 'Founder',
-            equity_percentage: 100
-        }]);
-
-        try {
-            const { data: newStartup } = await supabase
-                .from('startups')
-                .insert([{
-                    founder_id: founderId,
-                    startup_name: title,
-                    description: description || '',
-                    industry: domain,
-                    stage: dbStage,
-                    funding_required: Number(funding_required) || 0
-                }])
-                .select('*')
-                .single();
-
-            if (newStartup) {
-                memoryStartups.set(newStartup.id, newStartup);
-                await supabase.from('startup_members').insert([{
-                    startup_id: newStartup.id,
-                    user_id: founderId,
-                    role: 'Founder',
-                    equity_percentage: 100
-                }]);
-                return this.getStartupDetails(newStartup.id);
-            }
-        } catch (e) {
-            // Supabase create catch
-        }
-
-        memoryActivities.unshift({
-            id: crypto.randomUUID(),
-            type: 'startup_launched',
-            title: `Launched ${title}`,
-            user_name: 'Founder',
-            timestamp: new Date().toISOString()
-        });
-
+        unwrap(await this.db.from(TABLES.startups).update(changes).eq('id', startupId).eq('founder_id', userId), 'Update startup');
         return this.getStartupDetails(startupId);
     }
 
-    async updateStartup(founderId, startupId, payload) {
-        const s = memoryStartups.get(startupId);
-        if (!s) throw new ApiError(404, 'Startup not found');
-        if (s.founder_id !== founderId && s.owner_id !== founderId) throw new ApiError(403, 'Unauthorized to edit this startup');
+    async addMember(userId, startupId, { user_id, username, role }) {
+        const startup = await this.loadStartupRow(startupId);
+        this.assertOwner(startup, userId);
 
-        if (payload.title) s.startup_name = payload.title;
-        if (payload.description) s.description = payload.description;
-        if (payload.domain) s.industry = payload.domain;
-        if (payload.stage) s.stage = mapStageToDb(payload.stage);
-        if (payload.funding_required) s.funding_required = Number(payload.funding_required);
-        if (payload.pitch_deck_url) s.pitch_deck_url = payload.pitch_deck_url;
-        if (payload.logo_url) s.logo_url = payload.logo_url;
-
-        memoryStartups.set(startupId, s);
-
-        try {
-            await supabase.from('startups').update(s).eq('id', startupId);
-        } catch (e) {
-            // Supabase update catch
+        let memberUserId = user_id;
+        if (!memberUserId && username) {
+            const found = unwrap(
+                await this.db.from(TABLES.profiles).select('id').eq('username', String(username).trim().toLowerCase()).limit(1),
+                'Find member'
+            );
+            if (!found || found.length === 0) throw new ApiError(404, 'No registered user with that username');
+            memberUserId = found[0].id;
         }
+        if (!memberUserId) throw new ApiError(400, 'A registered username or user_id is required');
+        assertUuid(memberUserId, 'user id');
+        if (!role || !String(role).trim()) throw new ApiError(400, 'Role is required');
 
-        return this.getStartupDetails(startupId);
+        const existing = unwrap(
+            await this.db.from(TABLES.startupMembers).select('id').eq('startup_id', startupId).eq('user_id', memberUserId).limit(1),
+            'Check member'
+        );
+        if (existing && existing.length > 0) throw new ApiError(409, 'This user is already on the team');
+
+        const created = unwrap(
+            await this.db.from(TABLES.startupMembers)
+                .insert({ startup_id: startupId, user_id: memberUserId, role: String(role).trim() })
+                .select(cols('startupMembers')).single(),
+            'Add member'
+        );
+        await notificationsService.notify(memberUserId, userId, 'team_added', `added you to ${startup.title}`);
+        const members = await this.getMembers(startupId);
+        return members.find((m) => m.id === created.id) || created;
     }
 
-    async investInStartup(investorId, startupId, payload) {
-        const amount = Number(payload.amount);
-        const paymentMethod = payload.payment_method || 'UPI';
+    async removeMember(userId, startupId, memberId) {
+        const startup = await this.loadStartupRow(startupId);
+        this.assertOwner(startup, userId);
+        assertUuid(memberId, 'member id');
 
-        if (!amount || amount <= 0) {
-            throw new ApiError(400, 'Valid investment amount is required');
-        }
+        const rows = unwrap(
+            await this.db.from(TABLES.startupMembers).select('id, user_id').eq('id', memberId).eq('startup_id', startupId).limit(1),
+            'Load member'
+        );
+        if (!rows || rows.length === 0) throw new ApiError(404, 'Team member not found');
+        if (rows[0].user_id === startup.founder_id) throw new ApiError(400, 'The founder cannot be removed from the team');
 
-        const startup = await this.getStartupDetails(startupId);
-        if (!startup) throw new ApiError(404, 'Startup not found');
-
-        const transactionId = `TXN_${Date.now()}_${Math.floor(1000 + Math.random() * 9000)}`;
-
-        // Update local startup raised amount
-        const s = memoryStartups.get(startupId);
-        if (s) {
-            s.funding_raised = (s.funding_raised || s.raised || 0) + amount;
-            memoryStartups.set(startupId, s);
-        }
-
-        const investmentRecord = {
-            id: crypto.randomUUID(),
-            transaction_id: transactionId,
-            investor_id: investorId,
-            startup_id: startupId,
-            startup_title: startup.title,
-            amount,
-            payment_method: paymentMethod,
-            status: 'completed',
-            created_at: new Date().toISOString()
-        };
-
-        memoryInvestments.push(investmentRecord);
-
-        // Add activity entry
-        memoryActivities.unshift({
-            id: crypto.randomUUID(),
-            type: 'investment_completed',
-            title: `Invested $${amount.toLocaleString()} in ${startup.title}`,
-            user_name: 'Investor',
-            timestamp: new Date().toISOString()
-        });
-
-        // Notify founder
-        try {
-            if (startup.owner_id) {
-                await supabase.from('notifications').insert([{
-                    user_id: startup.owner_id,
-                    actor_id: investorId,
-                    type: 'investment_received',
-                    message: `received $${amount.toLocaleString()} investment in ${startup.title} via ${paymentMethod}`,
-                    read: false
-                }]);
-            }
-        } catch (e) {
-            // Notification catch
-        }
-
-        return {
-            transaction_id: transactionId,
-            amount,
-            payment_method: paymentMethod,
-            status: 'completed',
-            startup: {
-                id: startup.id,
-                title: startup.title,
-                raised: (startup.raised || 0) + amount,
-                funding_required: startup.funding_required
-            }
-        };
-    }
-
-    async getActivityFeed() {
-        return memoryActivities.slice(0, 15);
-    }
-
-    async addMember(founderId, startupId, payload) {
-        const { user_id, role, equity_percentage } = payload;
-        if (!user_id || !role) throw new ApiError(400, 'User ID and role are required');
-
-        const s = memoryStartups.get(startupId);
-        if (!s) throw new ApiError(404, 'Startup not found');
-
-        const newMember = {
-            id: crypto.randomUUID(),
-            startup_id: startupId,
-            user_id,
-            role,
-            equity_percentage: Number(equity_percentage) || 0
-        };
-
-        const existingMembers = memoryMembers.get(startupId) || [];
-        existingMembers.push(newMember);
-        memoryMembers.set(startupId, existingMembers);
-
-        return newMember;
-    }
-
-    async removeMember(founderId, startupId, memberId) {
-        const s = memoryStartups.get(startupId);
-        if (!s) throw new ApiError(404, 'Startup not found');
-
-        let members = memoryMembers.get(startupId) || [];
-        members = members.filter(m => m.id !== memberId && m.user_id !== memberId);
-        memoryMembers.set(startupId, members);
-
+        unwrap(await this.db.from(TABLES.startupMembers).delete().eq('id', memberId).eq('startup_id', startupId), 'Remove member');
         return { success: true };
     }
 
-    async expressInterest(investorId, startupId, notes) {
-        const s = memoryStartups.get(startupId);
-        const interestRecord = {
-            id: crypto.randomUUID(),
-            investor_id: investorId,
-            startup_id: startupId,
-            notes: notes || '',
-            status: 'interested'
-        };
+    // ---------- saved startups ----------
 
-        memoryInterests.set(`${investorId}_${startupId}`, interestRecord);
-        return interestRecord;
-    }
-
-    async getInvestorInterests(userId) {
-        const results = [];
-        memoryInterests.forEach(item => {
-            if (item.investor_id === userId) results.push(item);
-        });
-        return results;
-    }
-
-    async saveStartup(userId, startupId) {
-        const key = `${userId}_${startupId}`;
-        if (memorySaved.has(key)) {
-            memorySaved.delete(key);
+    async toggleSave(userId, startupId) {
+        await this.loadStartupRow(startupId);
+        const existing = unwrap(
+            await this.db.from(TABLES.savedStartups).select('startup_id').eq('user_id', userId).eq('startup_id', startupId).limit(1),
+            'Check saved startup'
+        );
+        if (existing && existing.length > 0) {
+            unwrap(await this.db.from(TABLES.savedStartups).delete().eq('user_id', userId).eq('startup_id', startupId), 'Unsave startup');
             return { saved: false };
-        } else {
-            memorySaved.set(key, true);
-            return { saved: true };
         }
+        const inserted = await this.db.from(TABLES.savedStartups).insert({ user_id: userId, startup_id: startupId });
+        if (inserted.error && inserted.error.code !== '23505') throw toApiError(inserted.error, 'Save startup');
+        return { saved: true };
     }
 
     async getSavedStartups(userId) {
-        const savedIds = [];
-        memorySaved.forEach((_, key) => {
-            if (key.startsWith(`${userId}_`)) {
-                savedIds.push(key.split('_')[1]);
-            }
-        });
-        const results = [];
-        for (const sid of savedIds) {
-            const details = await this.getStartupDetails(sid);
-            if (details) results.push(details);
-        }
-        return results;
+        const saved = unwrap(
+            await this.db.from(TABLES.savedStartups).select('startup_id').eq('user_id', userId),
+            'Load saved startups'
+        ) || [];
+        if (saved.length === 0) return [];
+        const rows = unwrap(
+            await this.db.from(TABLES.startups).select(STARTUP_COLUMNS).in('id', saved.map((s) => s.startup_id)),
+            'Load saved startup details'
+        ) || [];
+        const owners = await loadPublicProfiles(rows.map((r) => r.founder_id));
+        return rows.map((r) => formatStartup(r, owners.get(r.founder_id)));
     }
+
+    // ---------- sponsor interest ----------
+
+    async expressInterest(sponsorId, startupId, message) {
+        const startup = await this.loadStartupRow(startupId);
+        if (startup.founder_id === sponsorId) throw new ApiError(400, 'You cannot express interest in your own startup');
+
+        const existing = unwrap(
+            await this.db.from(TABLES.investorInterest).select('id')
+                .eq('startup_id', startupId).eq('investor_id', sponsorId).limit(1),
+            'Check existing interest'
+        );
+        if (existing && existing.length > 0) throw new ApiError(409, 'You have already expressed interest in this startup');
+
+        const row = { startup_id: startupId, investor_id: sponsorId };
+        if (message) row.message = message;
+        const created = unwrap(
+            await this.db.from(TABLES.investorInterest).insert(row).select(cols('investorInterest')).single(),
+            'Express interest'
+        );
+        await notificationsService.notify(startup.founder_id, sponsorId, 'investment_interest', `expressed interest in ${startup.title}`);
+        return created;
+    }
+
+    /** Sponsors see their own interests; innovators see interest received on their startups. */
+    async getInterests(user) {
+        let rows;
+        if (user.role === ROLES.SPONSOR) {
+            rows = unwrap(
+                await this.db.from(TABLES.investorInterest).select(cols('investorInterest')).eq('investor_id', user.id)
+                    .order('created_at', { ascending: false }),
+                'Load interests'
+            ) || [];
+        } else if (user.role === ROLES.INNOVATOR) {
+            const mine = unwrap(await this.db.from(TABLES.startups).select('id').eq('founder_id', user.id), 'Load own startups') || [];
+            if (mine.length === 0) return [];
+            rows = unwrap(
+                await this.db.from(TABLES.investorInterest).select(cols('investorInterest')).in('startup_id', mine.map((s) => s.id))
+                    .order('created_at', { ascending: false }),
+                'Load interests'
+            ) || [];
+        } else {
+            return [];
+        }
+        return this.decorateRelations(rows, 'investor_id');
+    }
+
+    // ---------- mentorship ----------
 
     async sendMentorRequest(mentorId, startupId, message) {
-        const reqRecord = {
-            id: crypto.randomUUID(),
-            mentor_id: mentorId,
-            startup_id: startupId,
-            message: message || '',
-            status: 'pending'
-        };
-        memoryMentorRequests.set(`${mentorId}_${startupId}`, reqRecord);
-        return reqRecord;
+        const startup = await this.loadStartupRow(startupId);
+        if (startup.founder_id === mentorId) throw new ApiError(400, 'You cannot mentor your own startup');
+
+        const existing = unwrap(
+            await this.db.from(TABLES.mentorRequests).select('id, status')
+                .eq('startup_id', startupId).eq('mentor_id', mentorId).eq('status', STATUS.PENDING).limit(1),
+            'Check existing mentor request'
+        );
+        if (existing && existing.length > 0) throw new ApiError(409, 'You already have a pending mentorship request for this startup');
+
+        const row = { startup_id: startupId, mentor_id: mentorId, status: STATUS.PENDING };
+        if (message) row.message = message;
+        const created = unwrap(
+            await this.db.from(TABLES.mentorRequests).insert(row).select(cols('mentorRequests')).single(),
+            'Send mentorship request'
+        );
+        await notificationsService.notify(startup.founder_id, mentorId, 'mentorship_request', `offered mentorship for ${startup.title}`);
+        return created;
     }
 
-    async getMentorRequests(userId) {
-        const results = [];
-        memoryMentorRequests.forEach(item => {
-            if (item.mentor_id === userId) results.push(item);
-        });
-        return results;
+    /** Mentors see requests they sent; innovators see requests received for their startups. */
+    async getMentorRequests(user) {
+        let rows;
+        if (user.role === ROLES.MENTOR) {
+            rows = unwrap(
+                await this.db.from(TABLES.mentorRequests).select(cols('mentorRequests')).eq('mentor_id', user.id)
+                    .order('created_at', { ascending: false }),
+                'Load mentor requests'
+            ) || [];
+        } else if (user.role === ROLES.INNOVATOR) {
+            const mine = unwrap(await this.db.from(TABLES.startups).select('id').eq('founder_id', user.id), 'Load own startups') || [];
+            if (mine.length === 0) return [];
+            rows = unwrap(
+                await this.db.from(TABLES.mentorRequests).select(cols('mentorRequests')).in('startup_id', mine.map((s) => s.id))
+                    .order('created_at', { ascending: false }),
+                'Load mentor requests'
+            ) || [];
+        } else {
+            return [];
+        }
+        return this.decorateRelations(rows, 'mentor_id');
     }
 
     async updateMentorRequestStatus(userId, requestId, status) {
-        return { id: requestId, status };
+        assertUuid(requestId, 'request id');
+        const nextStatus = ['accept', 'accepted'].includes(status) ? STATUS.ACCEPTED
+            : ['reject', 'rejected', 'decline', 'declined'].includes(status) ? STATUS.REJECTED : null;
+        if (!nextStatus) throw new ApiError(400, 'Status must be accepted or rejected');
+
+        const found = unwrap(
+            await this.db.from(TABLES.mentorRequests).select(cols('mentorRequests')).eq('id', requestId).limit(1),
+            'Load mentor request'
+        );
+        const request = found && found[0];
+        if (!request) throw new ApiError(404, 'Mentorship request not found');
+
+        const startup = await this.loadStartupRow(request.startup_id);
+        this.assertOwner(startup, userId);
+        if (request.status !== STATUS.PENDING) throw new ApiError(409, `This request was already ${request.status}`);
+
+        const updated = unwrap(
+            await this.db.from(TABLES.mentorRequests).update({ status: nextStatus })
+                .eq('id', requestId).eq('status', STATUS.PENDING).select(cols('mentorRequests')),
+            'Update mentor request'
+        );
+        if (!updated || updated.length === 0) throw new ApiError(409, 'This request was already handled');
+
+        await notificationsService.notify(
+            request.mentor_id, userId,
+            nextStatus === STATUS.ACCEPTED ? 'request_accepted' : 'request_rejected',
+            `${nextStatus === STATUS.ACCEPTED ? 'accepted' : 'declined'} your mentorship request for ${startup.title}`
+        );
+        const [decorated] = await this.decorateRelations(updated, 'mentor_id');
+        return decorated;
     }
 
-    async createStartupUpdate(userId, startupId, { content, image_url }) {
-        return { id: crypto.randomUUID(), startup_id: startupId, author_id: userId, content, image_url };
+    /** Adds startup title and the counterpart's public profile to mentor_requests / investor_interest rows. */
+    async decorateRelations(rows, actorColumn) {
+        if (rows.length === 0) return [];
+        const startups = unwrap(
+            await this.db.from(TABLES.startups).select('id, title').in('id', [...new Set(rows.map((r) => r.startup_id))]),
+            'Load startups'
+        ) || [];
+        const titles = new Map(startups.map((s) => [s.id, s.title]));
+        const profiles = await loadPublicProfiles(rows.map((r) => r[actorColumn]));
+        return rows.map((r) => {
+            const actor = profiles.get(r[actorColumn]);
+            return {
+                ...r,
+                startup_title: titles.get(r.startup_id) || null,
+                requester_id: r[actorColumn],
+                requester_name: actor?.full_name || actor?.username || null,
+                requester_username: actor?.username || null
+            };
+        });
     }
 
-    async deleteStartupUpdate(userId, updateId) {
-        return { success: true };
+    // ---------- startup updates ----------
+
+    async canPostUpdate(userId, startup) {
+        if (startup.founder_id === userId) return true;
+        const rows = unwrap(
+            await this.db.from(TABLES.startupMembers).select('id').eq('startup_id', startup.id).eq('user_id', userId).limit(1),
+            'Check membership'
+        );
+        return Boolean(rows && rows.length > 0);
+    }
+
+    async createStartupUpdate(userId, startupId, { content }) {
+        const startup = await this.loadStartupRow(startupId);
+        if (!(await this.canPostUpdate(userId, startup))) throw new ApiError(403, 'Only team members can post updates');
+        const text = String(content || '').trim();
+        if (!text) throw new ApiError(400, 'Update content is required');
+        if (text.length > 5000) throw new ApiError(400, 'Update content is too long');
+
+        return unwrap(
+            await this.db.from(TABLES.startupUpdates).insert({ startup_id: startupId, author_id: userId, content: text })
+                .select(cols('startupUpdates')).single(),
+            'Post update'
+        );
     }
 
     async getStartupUpdates(startupId) {
-        return [];
+        await this.loadStartupRow(startupId);
+        const rows = unwrap(
+            await this.db.from(TABLES.startupUpdates).select(cols('startupUpdates'))
+                .eq('startup_id', startupId).order('created_at', { ascending: false }).limit(50),
+            'Load updates'
+        ) || [];
+        const authors = await loadPublicProfiles(rows.map((r) => r.author_id));
+        return rows.map((r) => ({ ...r, author_name: authors.get(r.author_id)?.full_name || null }));
     }
 
+    async deleteStartupUpdate(userId, updateId) {
+        assertUuid(updateId, 'update id');
+        const found = unwrap(
+            await this.db.from(TABLES.startupUpdates).select(cols('startupUpdates')).eq('id', updateId).limit(1),
+            'Load update'
+        );
+        if (!found || found.length === 0) throw new ApiError(404, 'Update not found');
+        const startup = await this.loadStartupRow(found[0].startup_id);
+        if (found[0].author_id !== userId && startup.founder_id !== userId) {
+            throw new ApiError(403, 'Only the author or the startup owner can delete this update');
+        }
+        unwrap(await this.db.from(TABLES.startupUpdates).delete().eq('id', updateId), 'Delete update');
+        return { success: true };
+    }
+
+    // ---------- discovery signals (derived from persisted rows only) ----------
+
+    async countByStartup(table, startupIds) {
+        const counts = new Map();
+        if (startupIds.length === 0) return counts;
+        const rows = unwrap(await this.db.from(table).select('startup_id').in('startup_id', startupIds), 'Count startup signals') || [];
+        rows.forEach((r) => counts.set(r.startup_id, (counts.get(r.startup_id) || 0) + 1));
+        return counts;
+    }
+
+    /** Ranks recent startups by real engagement counts (saves + sponsor interest + mentor requests). No synthetic scores. */
     async getTrendingStartups() {
-        const startups = await this.listStartups();
-        return startups.map(s => ({
-            ...s,
-            metrics: {
-                followers: 12,
-                saved: 5,
-                interests: 3,
-                mentors: 2,
-                trending_score: 85
-            }
-        })).sort((a, b) => b.metrics.trending_score - a.metrics.trending_score);
+        const startups = await this.listStartups({});
+        const ids = startups.map((s) => s.id);
+        const [saved, interests, mentors] = await Promise.all([
+            this.countByStartup(TABLES.savedStartups, ids),
+            this.countByStartup(TABLES.investorInterest, ids),
+            this.countByStartup(TABLES.mentorRequests, ids)
+        ]);
+        return startups.map((s) => {
+            const metrics = {
+                saved: saved.get(s.id) || 0,
+                interests: interests.get(s.id) || 0,
+                mentor_requests: mentors.get(s.id) || 0
+            };
+            return { ...s, metrics, engagement: metrics.saved + metrics.interests + metrics.mentor_requests };
+        }).sort((a, b) => b.engagement - a.engagement).slice(0, 12);
     }
 
-    async getStartupAnalytics(startupId) {
-        const startup = await this.getStartupDetails(startupId);
-        const raised = startup.raised || 0;
-        const required = startup.funding_required || 1;
-        const progress = Math.min(100, Math.round((raised / required) * 100));
-
+    async getStartupAnalytics(userId, startupId) {
+        const startup = await this.loadStartupRow(startupId);
+        this.assertOwner(startup, userId);
+        const [saved, interests, mentors] = await Promise.all([
+            this.countByStartup(TABLES.savedStartups, [startupId]),
+            this.countByStartup(TABLES.investorInterest, [startupId]),
+            this.countByStartup(TABLES.mentorRequests, [startupId])
+        ]);
+        const formatted = formatStartup(startup);
         return {
             startup_id: startupId,
             title: startup.title,
             funding: {
-                raised,
-                required,
-                remaining: Math.max(0, required - raised),
-                progress_percentage: progress,
-                investors_count: memoryInvestments.filter(i => i.startup_id === startupId).length || 3,
-                largest_investment: 25000
+                required: formatted.funding_required,
+                received: formatted.funding_received,
+                remaining: Math.max(0, formatted.funding_required - formatted.funding_received),
+                progress_percentage: formatted.funding_progress
             },
             metrics: {
-                followers: 14,
-                saved: 8,
-                interests: 4,
-                mentor_requests: 3,
-                updates_count: 5,
-                completion_score: 95
+                saved: saved.get(startupId) || 0,
+                interests: interests.get(startupId) || 0,
+                mentor_requests: mentors.get(startupId) || 0
             }
+        };
+    }
+
+    /** Recent platform activity built from persisted startups and startup updates. */
+    async getActivityFeed() {
+        const startups = unwrap(
+            await this.db.from(TABLES.startups).select('id, title, founder_id, created_at').order('created_at', { ascending: false }).limit(10),
+            'Load activity'
+        ) || [];
+        const updates = unwrap(
+            await this.db.from(TABLES.startupUpdates).select('id, startup_id, author_id, content, created_at')
+                .order('created_at', { ascending: false }).limit(10),
+            'Load activity'
+        ) || [];
+        const titles = new Map(startups.map((s) => [s.id, s.title]));
+        const missing = [...new Set(updates.map((u) => u.startup_id).filter((id) => !titles.has(id)))];
+        if (missing.length > 0) {
+            const extra = unwrap(await this.db.from(TABLES.startups).select('id, title').in('id', missing), 'Load activity') || [];
+            extra.forEach((s) => titles.set(s.id, s.title));
+        }
+        const people = await loadPublicProfiles([...startups.map((s) => s.founder_id), ...updates.map((u) => u.author_id)]);
+
+        const activities = [
+            ...startups.map((s) => ({
+                id: `startup-${s.id}`,
+                type: 'startup_launched',
+                title: `Launched ${s.title}`,
+                user_name: people.get(s.founder_id)?.full_name || null,
+                timestamp: s.created_at
+            })),
+            ...updates.map((u) => ({
+                id: `update-${u.id}`,
+                type: 'startup_update',
+                title: `Update from ${titles.get(u.startup_id) || 'a startup'}: ${String(u.content).slice(0, 80)}`,
+                user_name: people.get(u.author_id)?.full_name || null,
+                timestamp: u.created_at
+            }))
+        ];
+        return activities.sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0)).slice(0, 15);
+    }
+
+    // ---------- funding (simulation only) ----------
+
+    /**
+     * Simulated funding commitment. The schema has no transaction ledger, so nothing is persisted and
+     * startups.funding_received is NEVER modified. The response is explicitly labelled as a simulation.
+     */
+    async simulateInvestment(sponsorId, startupId, { amount, payment_method, accepted_terms }) {
+        const startup = await this.loadStartupRow(startupId);
+        if (startup.founder_id === sponsorId) throw new ApiError(400, 'You cannot fund your own startup');
+
+        const value = Number(amount);
+        if (!Number.isFinite(value) || value <= 0) throw new ApiError(400, 'A positive amount is required');
+        if (!['UPI', 'CARD', 'NETBANKING'].includes(String(payment_method || '').toUpperCase())) {
+            throw new ApiError(400, 'Choose a simulated payment method');
+        }
+        if (accepted_terms !== true) throw new ApiError(400, 'You must accept the demo terms');
+
+        return {
+            simulated: true,
+            persisted: false,
+            reference: `SIM-${Date.now().toString(36).toUpperCase()}-${Math.floor(Math.random() * 1e4).toString().padStart(4, '0')}`,
+            amount: value,
+            payment_method: String(payment_method).toUpperCase(),
+            startup: { id: startup.id, title: startup.title },
+            notice: 'Demo only: no payment was processed and no funding totals were changed. Use "Express interest" to record real interest.'
         };
     }
 }

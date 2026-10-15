@@ -8,11 +8,13 @@ import Loader from "@/components/Loader";
 import { useAuth } from "@/hooks/useAuth";
 import { useStartup } from "@/hooks/useStartup";
 import { DOMAINS, STAGES } from "@/utils/constants";
+import { errorMessage } from "@/api/axios";
+import { formatCurrency } from "@/utils/helpers";
 import toast from "react-hot-toast";
 
 export default function Projects() {
     const { user } = useAuth();
-    const { startups, fetchStartups, createStartup, updateStartup, addMember, removeMember, uploadPitchDeck } = useStartup();
+    const { startups, error: startupsError, fetchStartups, createStartup, updateStartup, addMember, removeMember, uploadPitchDeck } = useStartup();
     const [loading, setLoading] = useState(true);
 
     // Modal state for Launch Venture
@@ -22,7 +24,7 @@ export default function Projects() {
         title: "",
         description: "",
         domain: "AgriTech",
-        stage: "Seed",
+        stage: "MVP",
         funding_required: 50
     });
 
@@ -31,20 +33,12 @@ export default function Projects() {
     const [pitchDeckUrl, setPitchDeckUrl] = useState("");
 
     // Team member state
-    const [memberName, setMemberName] = useState("");
+    const [memberUsername, setMemberUsername] = useState("");
     const [memberRole, setMemberRole] = useState("");
 
     useEffect(() => {
-        const load = async () => {
-            try {
-                await fetchStartups();
-            } catch (err) {
-                console.error(err);
-            } finally {
-                setLoading(false);
-            }
-        };
-        if (user) load();
+        // "My Startups" is filtered by the authenticated owner on the server.
+        if (user) fetchStartups({ owner: "me" }).finally(() => setLoading(false));
     }, [user, fetchStartups]);
 
     const handleLaunchSubmit = async (e) => {
@@ -61,14 +55,12 @@ export default function Projects() {
                 domain: launchForm.domain,
                 stage: launchForm.stage,
                 funding_required: parseFloat(launchForm.funding_required) || 0,
-                raised: 0,
-                pitch_deck_url: ""
             });
             toast.success("Startup launched successfully!");
             setIsLaunchModalOpen(false);
-            setLaunchForm({ title: "", description: "", domain: "AgriTech", stage: "Seed", funding_required: 50 });
+            setLaunchForm({ title: "", description: "", domain: "AgriTech", stage: "MVP", funding_required: 50 });
         } catch (err) {
-            toast.error(err.message || "Failed to launch startup.");
+            toast.error(errorMessage(err, "Failed to launch startup."));
         } finally {
             setIsLaunching(false);
         }
@@ -80,7 +72,7 @@ export default function Projects() {
             toast.success("Pitch deck link updated!");
             setEditingStartup(null);
         } catch (err) {
-            toast.error(err.message || "Failed to update pitch deck.");
+            toast.error(errorMessage(err, "Failed to update pitch deck."));
         }
     };
 
@@ -91,25 +83,25 @@ export default function Projects() {
             await uploadPitchDeck(startupId, file);
             toast.success("Document uploaded successfully!", { id: toastId });
             setEditingStartup(null);
-            await fetchStartups();
+            await fetchStartups({ owner: "me" });
         } catch (err) {
-            toast.error(err.message || "Failed to upload document.", { id: toastId });
+            toast.error(errorMessage(err, "Failed to upload document."), { id: toastId });
         }
     };
 
     const handleAddTeamMember = async (startupId) => {
-        if (!memberName.trim()) {
-            toast.error("Member name is required.");
+        if (!memberUsername.trim()) {
+            toast.error("Enter the username of a registered member.");
             return;
         }
         try {
-            await addMember(startupId, { name: memberName, role: memberRole || "Team Member" });
+            await addMember(startupId, { username: memberUsername.trim().toLowerCase().replace(/^@/, ""), role: memberRole.trim() || "Team Member" });
             toast.success("Team member added!");
-            setMemberName("");
+            setMemberUsername("");
             setMemberRole("");
-            await fetchStartups();
+            await fetchStartups({ owner: "me" });
         } catch (err) {
-            toast.error(err.message || "Failed to add team member.");
+            toast.error(errorMessage(err, "Failed to add team member."));
         }
     };
 
@@ -117,9 +109,9 @@ export default function Projects() {
         try {
             await removeMember(startupId, memberId);
             toast.success("Team member removed.");
-            await fetchStartups();
+            await fetchStartups({ owner: "me" });
         } catch (err) {
-            toast.error(err.message || "Failed to remove team member.");
+            toast.error(errorMessage(err, "Failed to remove team member."));
         }
     };
 
@@ -162,11 +154,11 @@ export default function Projects() {
                             <div className="grid grid-cols-2 gap-4 bg-gray-50 p-3 rounded-lg border border-gray-200 text-xs">
                                 <div>
                                     <p className="text-[10px] font-semibold text-gray-400 uppercase">Goal</p>
-                                    <p className="font-bold text-gray-900 mt-0.5">₹{s.funding_required} Lakhs</p>
+                                    <p className="font-bold text-gray-900 mt-0.5">{formatCurrency(s.funding_required)}</p>
                                 </div>
                                 <div>
-                                    <p className="text-[10px] font-semibold text-gray-400 uppercase">Raised</p>
-                                    <p className="font-bold text-gray-900 mt-0.5">₹{s.raised} Lakhs</p>
+                                    <p className="text-[10px] font-semibold text-gray-400 uppercase">Received ({s.funding_progress}%)</p>
+                                    <p className="font-bold text-gray-900 mt-0.5">{formatCurrency(s.funding_received)}</p>
                                 </div>
                             </div>
 
@@ -223,9 +215,9 @@ export default function Projects() {
                                 </p>
                                 <div className="flex gap-2">
                                     <Input
-                                        placeholder="Name"
-                                        value={memberName}
-                                        onChange={(e) => setMemberName(e.target.value)}
+                                        placeholder="Member username"
+                                        value={memberUsername}
+                                        onChange={(e) => setMemberUsername(e.target.value)}
                                     />
                                     <Input
                                         placeholder="Role (e.g. CTO)"
@@ -246,7 +238,7 @@ export default function Projects() {
                                             </div>
                                         ))
                                     ) : (
-                                        <p className="text-gray-400 italic">No custom team members registered.</p>
+                                        <p className="text-gray-400 italic">No team members yet.</p>
                                     )}
                                 </div>
                             </div>
@@ -254,9 +246,17 @@ export default function Projects() {
                     ))}
                 </div>
             ) : (
-                <Card className="text-center py-12 text-gray-500 text-sm">
-                    No startups active. Click "Launch Venture" to create your startup profile.
-                </Card>
+                startupsError ? (
+                    <Card className="text-center py-10 space-y-3 border-red-200">
+                        <p className="text-sm font-semibold text-red-700">Couldn't load your startups</p>
+                        <p className="text-xs text-gray-500">{startupsError}</p>
+                        <Button variant="outline" size="sm" onClick={() => fetchStartups({ owner: "me" })}>Try again</Button>
+                    </Card>
+                ) : (
+                    <Card className="text-center py-12 text-gray-500 text-sm">
+                        No startups active. Click "Launch Venture" to create your startup profile.
+                    </Card>
+                )
             )}
 
             {/* Launch Modal */}

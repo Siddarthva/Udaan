@@ -7,12 +7,12 @@
     "scripts": {
         "start": "node src/server.js",
         "dev": "nodemon --config nodemon.json src/server.js",
-        "test": "node test-integration.js"
+        "test": "node --test \"test/**/*.test.js\"",
+        "test:live-legacy": "node test-integration.js"
     },
     "dependencies": {
         "@supabase/supabase-js": "^2.108.1",
         "axios": "^1.18.0",
-        "bcrypt": "^5.1.1",
         "cookie-parser": "^1.4.6",
         "cors": "^2.8.5",
         "dotenv": "^16.4.5",
@@ -20,7 +20,6 @@
         "express-rate-limit": "^7.1.5",
         "form-data": "^4.0.6",
         "helmet": "^7.1.0",
-        "jsonwebtoken": "^9.0.2",
         "morgan": "^1.10.0",
         "multer": "^2.1.1",
         "swagger-ui-express": "^5.0.1",

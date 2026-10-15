@@ -7,20 +7,17 @@ class MessagesController {
     }
 
     async getMessageRequests(req, res) {
-        const requests = await messagesService.getMessageRequests(req.user.id);
+        const requests = await messagesService.getIncomingRequests(req.user.id);
         res.status(200).json({ requests });
     }
 
     async updateRequestStatus(req, res) {
-        console.log('Request ID:', req.params.id);
-        console.log('User:', req.user?.id);
-        console.log('Body:', req.body);
-
-        const result = await messagesService.updateRequestStatus(req.user.id, req.params.id, req.body);
+        const action = typeof req.body === 'string' ? req.body : (req.body.action || req.body.status);
+        const result = await messagesService.respondToRequest(req.user.id, req.params.id, action);
         res.status(200).json({
             request: result.request,
-            conversation: result.conversation || null,
-            message: `Request ${result.request?.status}`
+            conversation: result.conversation,
+            message: `Request ${result.request.status}`
         });
     }
 

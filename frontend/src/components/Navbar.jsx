@@ -2,13 +2,16 @@ import React from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { LogOut, User, Bell } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useNotificationsQuery } from "@/api/hooks";
 
 export default function Navbar() {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
+    const { data: notificationData } = useNotificationsQuery();
+    const unreadCount = notificationData?.unread_count || 0;
 
-    const handleLogout = () => {
-        logout();
+    const handleLogout = async () => {
+        await logout();
         navigate("/auth", { replace: true });
     };
 
@@ -31,9 +34,15 @@ export default function Navbar() {
             <div className="flex items-center gap-4">
                 <Link
                     to="/notifications"
-                    className="p-2 text-gray-500 hover:text-gray-900 rounded-lg hover:bg-gray-100 transition-colors"
+                    className="relative p-2 text-gray-500 hover:text-gray-900 rounded-lg hover:bg-gray-100 transition-colors"
+                    title={unreadCount ? `${unreadCount} unread notifications` : "Notifications"}
                 >
                     <Bell size={18} />
+                    {unreadCount > 0 && (
+                        <span className="absolute top-1 right-1 min-w-4 h-4 px-1 bg-indigo-600 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                            {unreadCount > 9 ? "9+" : unreadCount}
+                        </span>
+                    )}
                 </Link>
                 <Link
                     to="/profile"

@@ -1,41 +1,52 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Search, UserPlus, Check, MessageSquare, ShieldCheck, Briefcase, GraduationCap, Building2, MapPin, Sparkles } from "lucide-react";
 import Button from "@/components/Button";
 import Card from "@/components/Card";
 import Input from "@/components/Input";
 import Modal from "@/components/Modal";
 import Loader from "@/components/Loader";
-import { useCommunityMembersQuery, useFollowUserMutation, useFollowingQuery } from "@/api/hooks";
+import { useCommunityMembersQuery, useFollowUserMutation, useUnfollowUserMutation } from "@/api/hooks";
+import { errorMessage } from "@/api/axios";
 import { requestsApi } from "@/api/api";
 import toast from "react-hot-toast";
 
 export default function Community() {
     const [selectedRole, setSelectedRole] = useState("all");
     const [searchQuery, setSearchQuery] = useState("");
-    const [sortOption, setSortOption] = useState("trending");
+    const [sortOption, setSortOption] = useState("recent");
 
     // Message Request Modal
     const [messageModalUser, setMessageModalUser] = useState(null);
     const [initialMessage, setInitialMessage] = useState("");
     const [sending, setSending] = useState(false);
 
-    const { data: members = [], isLoading } = useCommunityMembersQuery({
+    // Debounce the search box so typing does not fire a request per keystroke.
+    const [debouncedSearch, setDebouncedSearch] = useState("");
+    useEffect(() => {
+        const t = setTimeout(() => setDebouncedSearch(searchQuery.trim()), 300);
+        return () => clearTimeout(t);
+    }, [searchQuery]);
+
+    const { data: members = [], isLoading, isError, error, refetch } = useCommunityMembersQuery({
         role: selectedRole,
-        search: searchQuery,
+        search: debouncedSearch,
         sort: sortOption
     });
 
-    const { data: following = { users: [], startups: [] } } = useFollowingQuery();
     const followUserMutation = useFollowUserMutation();
+    const unfollowUserMutation = useUnfollowUserMutation();
 
-    const followedUserIds = new Set((following.users || []).map(u => u.id));
-
-    const handleFollow = async (userId) => {
+    const handleToggleFollow = async (member) => {
         try {
-            await followUserMutation.mutateAsync(userId);
-            toast.success("User followed");
+            if (member.is_following) {
+                await unfollowUserMutation.mutateAsync(member.id);
+                toast.success(`Unfollowed ${member.full_name}`);
+            } else {
+                await followUserMutation.mutateAsync(member.id);
+                toast.success(`Following ${member.full_name}`);
+            }
         } catch (e) {
-            toast.error("Failed to follow user");
+            toast.error(errorMessage(e, "Could not update follow"));
         }
     };
 
@@ -47,14 +58,14 @@ export default function Community() {
         try {
             await requestsApi.create({
                 receiver_id: messageModalUser.id,
-                type: 'general',
+                request_type: 'general',
                 initial_message: initialMessage
             });
             toast.success(`Message request sent to ${messageModalUser.full_name}`);
             setMessageModalUser(null);
             setInitialMessage("");
         } catch (err) {
-            toast.error(err.message || "Failed to send request");
+            toast.error(errorMessage(err, "Failed to send request"));
         } finally {
             setSending(false);
         }
@@ -100,7 +111,6 @@ export default function Community() {
                     onChange={(e) => setSortOption(e.target.value)}
                     className="h-10 px-3 bg-white border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900"
                 >
-                    <option value="trending">Sort: Trending</option>
                     <option value="followers">Sort: Most Followed</option>
                     <option value="recent">Sort: Recently Joined</option>
                     <option value="alphabetical">Sort: Alphabetical</option>
@@ -109,7 +119,13 @@ export default function Community() {
 
             {/* Member Cards Grid */}
             {isLoading ? (
-                <Loader fullScreen text="Loading Community Members..." />
+                <Loader text="Loading Community Members..." />
+            ) : isError ? (
+                <Card className="text-center py-10 space-y-3 border-red-200">
+                    <p className="text-sm font-semibold text-red-700">Couldn't load community members</p>
+                    <p className="text-xs text-gray-500">{errorMessage(error)}</p>
+                    <Button variant="outline" size="sm" onClick={() => refetch()}>Try again</Button>
+                </Card>
             ) : members.length === 0 ? (
                 <Card className="text-center py-12 text-gray-400 text-xs">
                     No community members found matching your search query.
@@ -117,7 +133,7 @@ export default function Community() {
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                     {members.map((member) => {
-                        const isFollowing = followedUserIds.has(member.id);
+                        const isFollowing = member.is_following;
                         return (
                             <Card key={member.id} className="flex flex-col justify-between space-y-4">
                                 <div className="space-y-3">
@@ -133,14 +149,13 @@ export default function Community() {
                                             <div>
                                                 <div className="flex items-center gap-1.5">
                                                     <h3 className="font-bold text-gray-900 text-sm">{member.full_name}</h3>
-                                                    {member.is_verified && <ShieldCheck className="w-4 h-4 text-indigo-600" />}
                                                 </div>
-                                                <p className="text-xs text-indigo-600 font-medium">{member.role}</p>
+                                                <p className="text-xs text-indigo-600 font-medium capitalize">{(member.role || "").toLowerCase()} <span className="text-gray-400 font-normal">@{member.username}</span></p>
                                             </div>
                                         </div>
 
-                                        <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 text-[10px] font-bold rounded-full border border-emerald-100">
-                                            {member.availability}
+                                        <span className="px-2 py-0.5 bg-gray-50 text-gray-600 text-[10px] font-bold rounded-full border border-gray-200">
+                                            {member.followers_count} follower{member.followers_count === 1 ? "" : "s"}
                                         </span>
                                     </div>
 
@@ -148,14 +163,18 @@ export default function Community() {
 
                                     {/* College / Company details */}
                                     <div className="space-y-1 text-xs text-gray-500 pt-2 border-t border-gray-100">
-                                        <div className="flex items-center gap-1.5">
-                                            <GraduationCap className="w-3.5 h-3.5 text-gray-400" />
-                                            <span className="truncate">{member.college}</span>
-                                        </div>
-                                        <div className="flex items-center gap-1.5">
-                                            <Building2 className="w-3.5 h-3.5 text-gray-400" />
-                                            <span className="truncate">{member.company}</span>
-                                        </div>
+                                        {member.college && (
+                                            <div className="flex items-center gap-1.5">
+                                                <GraduationCap className="w-3.5 h-3.5 text-gray-400" />
+                                                <span className="truncate">{member.college}</span>
+                                            </div>
+                                        )}
+                                        {member.company && (
+                                            <div className="flex items-center gap-1.5">
+                                                <Building2 className="w-3.5 h-3.5 text-gray-400" />
+                                                <span className="truncate">{member.company}</span>
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* Skill Pill Chips */}
@@ -170,7 +189,7 @@ export default function Community() {
 
                                 <div className="flex items-center gap-2 pt-3 border-t border-gray-100">
                                     <button
-                                        onClick={() => handleFollow(member.id)}
+                                        onClick={() => handleToggleFollow(member)}
                                         className={`flex-1 py-1.5 text-xs font-semibold rounded-lg flex items-center justify-center gap-1 transition-colors ${
                                             isFollowing ? "bg-indigo-50 text-indigo-700 border border-indigo-200" : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                                         }`}

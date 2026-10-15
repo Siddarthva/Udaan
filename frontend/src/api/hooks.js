@@ -1,12 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { startupApi, investorApi, mentorApi, authApi, followApi, notificationsApi, messagesApi, requestsApi, aiApi, communityApi, activityApi } from "./api";
+import { startupApi, investorApi, followApi, notificationsApi, messagesApi, requestsApi, aiApi, communityApi, activityApi } from "./api";
 
 // Activity Feed Hook
 export function useActivityFeedQuery() {
     return useQuery({
         queryKey: ["activity_feed"],
         queryFn: () => activityApi.fetchAll(),
-        refetchInterval: 10000
+        refetchInterval: 60000
     });
 }
 
@@ -15,6 +15,14 @@ export function useCommunityMembersQuery(filters = {}) {
     return useQuery({
         queryKey: ["community", filters],
         queryFn: () => communityApi.fetchMembers(filters)
+    });
+}
+
+export function useCommunityMemberQuery(id) {
+    return useQuery({
+        queryKey: ["community_member", id],
+        queryFn: () => communityApi.fetchMember(id),
+        enabled: !!id
     });
 }
 
@@ -85,15 +93,9 @@ export function useLaunchStartupMutation() {
 }
 
 export function useInvestStartupMutation() {
-    const queryClient = useQueryClient();
     return useMutation({
         mutationFn: ({ id, data }) => startupApi.invest(id, data),
-        onSuccess: (_, { id }) => {
-            queryClient.invalidateQueries({ queryKey: ["startup", id] });
-            queryClient.invalidateQueries({ queryKey: ["startups"] });
-            queryClient.invalidateQueries({ queryKey: ["startup_analytics", id] });
-            queryClient.invalidateQueries({ queryKey: ["activity_feed"] });
-        }
+        // Funding is a demo simulation: nothing is persisted, so there is no server state to refresh.
     });
 }
 
@@ -161,14 +163,27 @@ export function useToggleSaveMutation() {
 export function useConversationsQuery() {
     return useQuery({
         queryKey: ["conversations"],
-        queryFn: () => messagesApi.fetchConversations()
+        queryFn: () => messagesApi.fetchConversations(),
+        refetchInterval: 15000
+    });
+}
+
+export function useMarkConversationReadMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (conversationId) => messagesApi.markRead(conversationId),
+        onSuccess: (_, conversationId) => {
+            queryClient.invalidateQueries({ queryKey: ["conversations"] });
+            queryClient.invalidateQueries({ queryKey: ["messages", conversationId] });
+        }
     });
 }
 
 export function useMessageRequestsQuery() {
     return useQuery({
         queryKey: ["message_requests"],
-        queryFn: () => messagesApi.fetchMessageRequests()
+        queryFn: () => messagesApi.fetchMessageRequests(),
+        refetchInterval: 15000
     });
 }
 
@@ -187,7 +202,8 @@ export function useMessagesQuery(conversationId) {
     return useQuery({
         queryKey: ["messages", conversationId],
         queryFn: () => messagesApi.fetchHistory(conversationId),
-        enabled: !!conversationId
+        enabled: !!conversationId,
+        refetchInterval: 5000
     });
 }
 
@@ -226,6 +242,8 @@ export function useFollowUserMutation() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["following"] });
             queryClient.invalidateQueries({ queryKey: ["followers"] });
+            queryClient.invalidateQueries({ queryKey: ["community"] });
+            queryClient.invalidateQueries({ queryKey: ["community_member"] });
         }
     });
 }
@@ -237,16 +255,8 @@ export function useUnfollowUserMutation() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["following"] });
             queryClient.invalidateQueries({ queryKey: ["followers"] });
-        }
-    });
-}
-
-export function useFollowStartupMutation() {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: (startupId) => followApi.followStartup(startupId),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["following"] });
+            queryClient.invalidateQueries({ queryKey: ["community"] });
+            queryClient.invalidateQueries({ queryKey: ["community_member"] });
         }
     });
 }
@@ -256,7 +266,7 @@ export function useNotificationsQuery() {
     return useQuery({
         queryKey: ["notifications"],
         queryFn: () => notificationsApi.fetchAll(),
-        refetchInterval: 15000
+        refetchInterval: 30000
     });
 }
 
@@ -264,6 +274,16 @@ export function useMarkNotificationsReadMutation() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: () => notificationsApi.markRead(),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["notifications"] });
+        }
+    });
+}
+
+export function useMarkNotificationReadMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (id) => notificationsApi.markSingleRead(id),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["notifications"] });
         }

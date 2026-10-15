@@ -1,44 +1,33 @@
+/** Canonical application roles as persisted in `profiles.role`. */
 const ROLES = {
-    INNOVATOR: 'innovator',
-    MENTOR: 'mentor',
-    SPONSOR: 'sponsor'
+    INNOVATOR: 'INNOVATOR',
+    MENTOR: 'MENTOR',
+    SPONSOR: 'SPONSOR'
 };
 
-const ROLE_MAP_CLIENT = {
-    'innovator': 'innovator',
-    'mentor': 'mentor',
-    'sponsor': 'sponsor',
-    'founder': 'innovator',
-    'investor': 'sponsor',
-    'admin': 'innovator'
+const LEGACY_ROLE_ALIASES = {
+    FOUNDER: ROLES.INNOVATOR,
+    INVESTOR: ROLES.SPONSOR
 };
 
-const ROLE_MAP_DB = {
-    'innovator': 'innovator',
-    'mentor': 'mentor',
-    'sponsor': 'sponsor',
-    'founder': 'innovator',
-    'investor': 'sponsor',
-    'admin': 'innovator'
-};
-
-function mapRoleToClient(role) {
-    if (!role) return ROLES.INNOVATOR;
-    return ROLE_MAP_CLIENT[role.toLowerCase()] || role.toLowerCase() || ROLES.INNOVATOR;
+/**
+ * Normalize any stored / submitted role string (any case, legacy aliases) to a canonical role.
+ * Returns null for unknown values: an unknown role grants no privileges and is never guessed.
+ */
+function normalizeRole(role) {
+    if (typeof role !== 'string') return null;
+    const upper = role.trim().toUpperCase();
+    if (ROLES[upper]) return ROLES[upper];
+    return LEGACY_ROLE_ALIASES[upper] || null;
 }
 
-function mapRoleToDb(role) {
-    if (!role) return ROLES.INNOVATOR;
-    return ROLE_MAP_DB[role.toLowerCase()] || role.toLowerCase() || ROLES.INNOVATOR;
-}
-
+// Stage persistence format. VERIFY against the real `startups.stage` values.
 function mapStageToDb(clientStage) {
-    const stage = String(clientStage || '').toLowerCase();
+    const stage = String(clientStage || '').trim().toLowerCase();
     if (stage.includes('idea')) return 'idea';
-    if (stage.includes('mvp')) return 'mvp';
-    if (stage.includes('seed')) return 'mvp';
-    if (stage.includes('scale') || stage.includes('scaling')) return 'scaling';
-    return 'idea';
+    if (stage.includes('mvp') || stage.includes('seed')) return 'mvp';
+    if (stage.includes('scal') || stage.includes('growth')) return 'scaling';
+    return null;
 }
 
 function mapStageToClient(dbStage) {
@@ -46,7 +35,7 @@ function mapStageToClient(dbStage) {
     if (stage === 'idea') return 'Idea';
     if (stage === 'mvp') return 'MVP';
     if (stage === 'scaling') return 'Scale';
-    return dbStage || 'Idea';
+    return dbStage || null;
 }
 
 const BUCKET_MAPPING = {
@@ -63,8 +52,7 @@ const BUCKET_MAPPING = {
 
 module.exports = {
     ROLES,
-    mapRoleToClient,
-    mapRoleToDb,
+    normalizeRole,
     mapStageToDb,
     mapStageToClient,
     BUCKET_MAPPING

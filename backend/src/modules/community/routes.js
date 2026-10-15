@@ -8,5 +8,6 @@ router.use(authenticate);
 
 router.get('/', asyncHandler(communityController.getMembers.bind(communityController)));
 router.get('/search', asyncHandler(communityController.searchMembers.bind(communityController)));
+router.get('/:id', asyncHandler(communityController.getMember.bind(communityController)));
 
 module.exports = router;

@@ -5,8 +5,11 @@ import Button from "@/components/Button";
 import Card from "@/components/Card";
 import Modal from "@/components/Modal";
 import { useAuth } from "@/hooks/useAuth";
-import { useFollowersQuery, useFollowingQuery, useStartupsQuery, useCommunityMembersQuery, useFollowUserMutation } from "@/api/hooks";
+import Loader from "@/components/Loader";
+import { useFollowersQuery, useFollowingQuery, useStartupsQuery, useCommunityMemberQuery, useFollowUserMutation, useUnfollowUserMutation } from "@/api/hooks";
 import { requestsApi } from "@/api/api";
+import { errorMessage } from "@/api/axios";
+import { mapRoleToClient } from "@/utils/roles";
 import toast from "react-hot-toast";
 
 export default function Profile() {
@@ -15,20 +18,12 @@ export default function Profile() {
 
     const isOwnProfile = !paramId || paramId === currentUser?.id;
 
-    // Fetch target user if viewing public profile
-    const { data: members = [] } = useCommunityMembersQuery();
-    const publicMember = members.find(m => m.id === paramId);
+    // Another member's profile is loaded from the API; nothing is invented when it is missing.
+    const { data: publicMember, isLoading: memberLoading, isError: memberError, error: memberErr } = useCommunityMemberQuery(isOwnProfile ? null : paramId);
 
-    const profileUser = isOwnProfile ? currentUser : (publicMember || {
-        id: paramId,
-        name: "Ecosystem Member",
-        full_name: "Ecosystem Member",
-        email: "member@udaan.io",
-        role: "Innovator",
-        college: "Ecosystem University",
-        company: "UDAAN Venture",
-        bio: "Passionate entrepreneur and innovator building the future."
-    });
+    const profileUser = isOwnProfile
+        ? currentUser
+        : (publicMember ? { ...publicMember, name: publicMember.full_name, role: mapRoleToClient(publicMember.role) } : null);
 
     const [activeTab, setActiveTab] = useState("overview");
     const [messageModalOpen, setMessageModalOpen] = useState(false);
@@ -36,21 +31,24 @@ export default function Profile() {
     const [sending, setSending] = useState(false);
 
     const { data: followers = [] } = useFollowersQuery();
-    const { data: following = { users: [], startups: [] } } = useFollowingQuery();
-    const { data: startups = [] } = useStartupsQuery();
+    const { data: following = { users: [] } } = useFollowingQuery();
+    const { data: userStartups = [], isLoading: startupsLoading } = useStartupsQuery({ owner: isOwnProfile ? "me" : paramId });
     const followUserMutation = useFollowUserMutation();
+    const unfollowUserMutation = useUnfollowUserMutation();
 
-    const followedUserIds = new Set((following.users || []).map(u => u.id));
-    const isFollowing = followedUserIds.has(profileUser?.id);
+    const isFollowing = Boolean(publicMember?.is_following);
 
-    const userStartups = startups.filter(s => s.owner_id === profileUser?.id);
-
-    const handleFollow = async () => {
+    const handleToggleFollow = async () => {
         try {
-            await followUserMutation.mutateAsync(profileUser.id);
-            toast.success("User followed");
+            if (isFollowing) {
+                await unfollowUserMutation.mutateAsync(profileUser.id);
+                toast.success("Unfollowed");
+            } else {
+                await followUserMutation.mutateAsync(profileUser.id);
+                toast.success("Following");
+            }
         } catch (e) {
-            toast.error("Failed to follow user");
+            toast.error(errorMessage(e, "Could not update follow"));
         }
     };
 
@@ -62,18 +60,29 @@ export default function Profile() {
         try {
             await requestsApi.create({
                 receiver_id: profileUser.id,
-                type: 'general',
+                request_type: 'general',
                 initial_message: initialMessage
             });
             toast.success(`Message request sent to ${profileUser.full_name || profileUser.name}`);
             setMessageModalOpen(false);
             setInitialMessage("");
         } catch (err) {
-            toast.error(err.message || "Failed to send request");
+            toast.error(errorMessage(err, "Failed to send request"));
         } finally {
             setSending(false);
         }
     };
+
+    if (!isOwnProfile && memberLoading) return <Loader text="Loading profile..." />;
+    if (!profileUser) {
+        return (
+            <Card className="max-w-xl mx-auto text-center py-10 space-y-2 border-red-200">
+                <p className="text-sm font-semibold text-red-700">{memberError && memberErr?.response?.status !== 404 ? "Couldn't load this profile" : "Profile not found"}</p>
+                <p className="text-xs text-gray-500">{memberError ? errorMessage(memberErr) : "This member does not exist."}</p>
+                <Link to="/community"><Button variant="outline" size="sm">Back to community</Button></Link>
+            </Card>
+        );
+    }
 
     return (
         <div className="max-w-4xl mx-auto space-y-6">
@@ -92,7 +101,7 @@ export default function Profile() {
                     </Link>
                 ) : (
                     <div className="flex gap-2">
-                        <Button variant={isFollowing ? "outline" : "default"} size="sm" onClick={handleFollow}>
+                        <Button variant={isFollowing ? "outline" : "default"} size="sm" onClick={handleToggleFollow}>
                             <UserPlus size={14} className="mr-1.5" /> {isFollowing ? "Following" : "Follow"}
                         </Button>
                         <Button size="sm" onClick={() => setMessageModalOpen(true)}>
@@ -113,10 +122,10 @@ export default function Profile() {
                                 <h2 className="text-xl font-bold text-gray-900">{profileUser?.full_name || profileUser?.name}</h2>
                                 <ShieldCheck className="w-4 h-4 text-indigo-600" />
                             </div>
-                            <p className="text-xs text-gray-500">{profileUser?.email}</p>
+                            <p className="text-xs text-gray-500">{isOwnProfile ? profileUser?.email : `@${profileUser?.username}`}</p>
                             <div className="flex items-center gap-2 mt-2">
                                 <span className="px-2.5 py-0.5 bg-indigo-50 text-indigo-700 text-xs font-semibold rounded border border-indigo-100">
-                                    Role: {profileUser?.role || "Innovator"}
+                                    Role: {profileUser?.role || "Not set"}
                                 </span>
                             </div>
                         </div>
@@ -124,12 +133,12 @@ export default function Profile() {
 
                     <div className="flex items-center gap-4 text-center border-t sm:border-t-0 sm:border-l border-gray-100 pt-4 sm:pt-0 sm:pl-6">
                         <div>
-                            <p className="text-lg font-bold text-gray-900">{isOwnProfile ? followers.length : (profileUser?.followers_count || 12)}</p>
+                            <p className="text-lg font-bold text-gray-900">{isOwnProfile ? followers.length : (profileUser?.followers_count ?? 0)}</p>
                             <p className="text-[10px] uppercase font-semibold text-gray-400">Followers</p>
                         </div>
                         <div className="w-px h-8 bg-gray-200" />
                         <div>
-                            <p className="text-lg font-bold text-gray-900">{isOwnProfile ? ((following.users?.length || 0) + (following.startups?.length || 0)) : 8}</p>
+                            <p className="text-lg font-bold text-gray-900">{isOwnProfile ? (following.users?.length || 0) : (profileUser?.following_count ?? 0)}</p>
                             <p className="text-[10px] uppercase font-semibold text-gray-400">Following</p>
                         </div>
                         <div className="w-px h-8 bg-gray-200" />
@@ -166,7 +175,7 @@ export default function Profile() {
                                     activeTab === "following" ? "border-indigo-600 text-indigo-600 font-bold" : "border-transparent hover:text-gray-900"
                                 }`}
                             >
-                                <UserPlus className="w-4 h-4" /> Following ({(following.users?.length || 0) + (following.startups?.length || 0)})
+                                <UserPlus className="w-4 h-4" /> Following ({following.users?.length || 0})
                             </button>
                         </>
                     )}
@@ -185,20 +194,20 @@ export default function Profile() {
                     <div className="space-y-4 text-xs">
                         <div>
                             <p className="font-semibold text-gray-400 uppercase text-[10px]">Bio</p>
-                            <p className="font-medium text-gray-800 mt-1">{profileUser?.bio || "Passionate entrepreneur and innovator building the future."}</p>
+                            <p className="font-medium text-gray-800 mt-1">{profileUser?.bio || <span className="text-gray-400 italic">No bio added yet.</span>}</p>
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="space-y-1">
                                 <p className="font-semibold text-gray-400 uppercase text-[10px]">College / University</p>
                                 <p className="font-medium text-gray-900 flex items-center gap-1.5">
-                                    <GraduationCap className="w-3.5 h-3.5 text-gray-400" /> {profileUser?.college || "Ecosystem University"}
+                                    <GraduationCap className="w-3.5 h-3.5 text-gray-400" /> {profileUser?.college || <span className="text-gray-400 italic">Not specified</span>}
                                 </p>
                             </div>
                             <div className="space-y-1">
                                 <p className="font-semibold text-gray-400 uppercase text-[10px]">Company / Organization</p>
                                 <p className="font-medium text-gray-900 flex items-center gap-1.5">
-                                    <Building2 className="w-3.5 h-3.5 text-gray-400" /> {profileUser?.company || "UDAAN Venture"}
+                                    <Building2 className="w-3.5 h-3.5 text-gray-400" /> {profileUser?.company || <span className="text-gray-400 italic">Not specified</span>}
                                 </p>
                             </div>
                         </div>
@@ -207,11 +216,14 @@ export default function Profile() {
                         <div>
                             <p className="font-semibold text-gray-400 uppercase text-[10px] mb-1.5">Featured Skills & Expertise</p>
                             <div className="flex flex-wrap gap-1.5">
-                                {(Array.isArray(profileUser?.skills) ? profileUser.skills : ['Venture Building', 'Product Strategy', 'Growth']).map((skill, i) => (
+                                {(Array.isArray(profileUser?.skills) ? profileUser.skills : []).map((skill, i) => (
                                     <span key={i} className="px-2.5 py-1 bg-gray-100 text-gray-700 text-xs font-semibold rounded-md border border-gray-200">
                                         {skill}
                                     </span>
                                 ))}
+                                {(!Array.isArray(profileUser?.skills) || profileUser.skills.length === 0) && (
+                                    <span className="text-gray-400 italic">No skills listed.</span>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -230,7 +242,7 @@ export default function Profile() {
                                         </div>
                                         <div>
                                             <p className="text-xs font-bold text-gray-900">{f.full_name || f.name}</p>
-                                            <p className="text-[10px] text-gray-500">{f.role || 'Member'}</p>
+                                            <p className="text-[10px] text-gray-500 capitalize">@{f.username} • {(f.role || "").toLowerCase()}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -241,7 +253,7 @@ export default function Profile() {
 
                 {activeTab === "following" && (
                     <div className="space-y-3">
-                        {((following.users || []).length === 0 && (following.startups || []).length === 0) ? (
+                        {(following.users || []).length === 0 ? (
                             <p className="text-xs text-gray-400 italic py-4 text-center">Not following anyone yet.</p>
                         ) : (
                             <>
@@ -253,20 +265,7 @@ export default function Profile() {
                                             </div>
                                             <div>
                                                 <p className="text-xs font-bold text-gray-900">{u.full_name || u.name}</p>
-                                                <p className="text-[10px] text-gray-500">{u.role || 'User'}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                                {(following.startups || []).map(s => (
-                                    <div key={s.id} className="flex items-center justify-between p-3 bg-indigo-50/40 rounded-lg border border-indigo-100">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold text-xs">
-                                                {s.startup_name?.charAt(0) || s.title?.charAt(0) || "S"}
-                                            </div>
-                                            <div>
-                                                <p className="text-xs font-bold text-gray-900">{s.startup_name || s.title}</p>
-                                                <p className="text-[10px] text-indigo-600 font-semibold">{s.industry || s.domain} Startup</p>
+                                                <p className="text-[10px] text-gray-500 capitalize">@{u.username} • {(u.role || "").toLowerCase()}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -279,7 +278,7 @@ export default function Profile() {
                 {activeTab === "startups" && (
                     <div className="space-y-3">
                         {userStartups.length === 0 ? (
-                            <p className="text-xs text-gray-400 italic py-4 text-center">No startups launched yet.</p>
+                            <p className="text-xs text-gray-400 italic py-4 text-center">{startupsLoading ? "Loading startups..." : "No startups launched yet."}</p>
                         ) : (
                             userStartups.map(s => (
                                 <div key={s.id} className="p-4 border border-gray-200 rounded-lg space-y-2">

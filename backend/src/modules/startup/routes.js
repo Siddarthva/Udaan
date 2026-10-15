@@ -1,41 +1,46 @@
 const express = require('express');
 const startupController = require('./controller');
 const authenticate = require('../../middleware/auth');
+const { allowedRoles } = require('../../middleware/auth');
 const { asyncHandler } = require('../../middleware/error');
-const { startupValidator, memberValidator } = require('../../middleware/validation');
+const { startupCreateValidator, startupUpdateValidator } = require('../../middleware/validation');
+const { ROLES } = require('../../utils/constants');
 
 const router = express.Router();
+const h = (name) => asyncHandler((req, res) => startupController[name](req, res));
 
-// Discovery & Trending
-router.get('/', asyncHandler((req, res) => startupController.listStartups(req, res)));
-router.get('/trending', asyncHandler((req, res) => startupController.getTrendingStartups(req, res)));
-router.get('/activity', asyncHandler((req, res) => startupController.getActivityFeed(req, res)));
+router.use(authenticate);
 
-// Investor & Mentor Relations List Routes (Must come BEFORE /:id to prevent route parameter collision)
-router.get('/relations/saved', authenticate, asyncHandler((req, res) => startupController.getSavedStartups(req, res)));
-router.get('/relations/interests', authenticate, asyncHandler((req, res) => startupController.getInvestorInterests(req, res)));
-router.get('/relations/mentor-requests', authenticate, asyncHandler((req, res) => startupController.getMentorRequests(req, res)));
-router.patch('/relations/mentor-requests/:id', authenticate, asyncHandler((req, res) => startupController.updateMentorRequestStatus(req, res)));
+// Discovery
+router.get('/', h('listStartups'));
+router.get('/trending', h('getTrendingStartups'));
+router.get('/activity', h('getActivityFeed'));
 
-// Startup Updates & Analytics
-router.delete('/updates/:id', authenticate, asyncHandler((req, res) => startupController.deleteUpdate(req, res)));
-router.get('/:id/updates', asyncHandler((req, res) => startupController.getUpdates(req, res)));
-router.post('/:id/updates', authenticate, asyncHandler((req, res) => startupController.createUpdate(req, res)));
-router.get('/:id/analytics', authenticate, asyncHandler((req, res) => startupController.getStartupAnalytics(req, res)));
+// Relation lists (declared before /:id so they are not captured as an id)
+router.get('/relations/saved', h('getSavedStartups'));
+router.get('/relations/interests', allowedRoles([ROLES.SPONSOR, ROLES.INNOVATOR]), h('getInvestorInterests'));
+router.get('/relations/mentor-requests', allowedRoles([ROLES.MENTOR, ROLES.INNOVATOR]), h('getMentorRequests'));
+router.patch('/relations/mentor-requests/:id', allowedRoles([ROLES.INNOVATOR]), h('updateMentorRequestStatus'));
 
-// Startup Detail & Launch
-router.get('/:id', asyncHandler((req, res) => startupController.getDetails(req, res)));
-router.post('/launch', authenticate, startupValidator, asyncHandler((req, res) => startupController.launchStartup(req, res)));
-router.patch('/:id', authenticate, startupValidator, asyncHandler((req, res) => startupController.updateStartup(req, res)));
+// Startup updates
+router.delete('/updates/:id', h('deleteUpdate'));
+router.get('/:id/updates', h('getUpdates'));
+router.post('/:id/updates', h('createUpdate'));
+router.get('/:id/analytics', h('getStartupAnalytics'));
 
-// Members Management
-router.post('/:id/members', authenticate, memberValidator, asyncHandler((req, res) => startupController.addMember(req, res)));
-router.delete('/:id/members/:memberId', authenticate, asyncHandler((req, res) => startupController.removeMember(req, res)));
+// Startup CRUD
+router.post('/launch', allowedRoles([ROLES.INNOVATOR]), startupCreateValidator, h('launchStartup'));
+router.get('/:id', h('getDetails'));
+router.patch('/:id', allowedRoles([ROLES.INNOVATOR]), startupUpdateValidator, h('updateStartup'));
 
-// Actions on Specific Startup
-router.post('/:id/invest', authenticate, asyncHandler((req, res) => startupController.investInStartup(req, res)));
-router.post('/:id/express-interest', authenticate, asyncHandler((req, res) => startupController.expressInterest(req, res)));
-router.post('/:id/save', authenticate, asyncHandler((req, res) => startupController.saveStartup(req, res)));
-router.post('/:id/mentor-request', authenticate, asyncHandler((req, res) => startupController.sendMentorRequest(req, res)));
+// Team
+router.post('/:id/members', allowedRoles([ROLES.INNOVATOR]), h('addMember'));
+router.delete('/:id/members/:memberId', allowedRoles([ROLES.INNOVATOR]), h('removeMember'));
+
+// Actions on a specific startup
+router.post('/:id/invest', allowedRoles([ROLES.SPONSOR]), h('simulateInvestment'));
+router.post('/:id/express-interest', allowedRoles([ROLES.SPONSOR]), h('expressInterest'));
+router.post('/:id/save', h('saveStartup'));
+router.post('/:id/mentor-request', allowedRoles([ROLES.MENTOR]), h('sendMentorRequest'));
 
 module.exports = router;

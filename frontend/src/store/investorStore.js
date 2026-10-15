@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { investorApi } from '../api/api';
+import { errorMessage } from '../api/axios';
 
 export const useInvestorStore = create((set, get) => ({
     watchlist: [],
@@ -13,7 +14,7 @@ export const useInvestorStore = create((set, get) => ({
             const watchlist = await investorApi.fetchWatchlist();
             set({ watchlist, isLoading: false });
         } catch (err) {
-            set({ error: err.message, isLoading: false });
+            set({ error: errorMessage(err), isLoading: false });
         }
     },
 
@@ -23,7 +24,7 @@ export const useInvestorStore = create((set, get) => ({
             await get().fetchWatchlist();
             return result.saved;
         } catch (err) {
-            set({ error: err.message });
+            set({ error: errorMessage(err) });
             throw err;
         }
     },
@@ -38,7 +39,7 @@ export const useInvestorStore = create((set, get) => ({
             }));
             return interest;
         } catch (err) {
-            set({ error: err.message, isLoading: false });
+            set({ error: errorMessage(err), isLoading: false });
             throw err;
         }
     },
@@ -49,7 +50,7 @@ export const useInvestorStore = create((set, get) => ({
             const interests = await investorApi.fetchInterests();
             set({ interests, isLoading: false });
         } catch (err) {
-            set({ error: err.message, isLoading: false });
+            set({ error: errorMessage(err), isLoading: false });
         }
     }
 }));

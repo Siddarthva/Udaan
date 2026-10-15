@@ -1,106 +1,102 @@
-const { supabase } = require('../../config/supabase');
+const { getAdminClient } = require('../../config/supabase');
+const { TABLES, cols } = require('../../config/schema');
+const { unwrap } = require('../../utils/db');
+const { normalizeRole } = require('../../utils/constants');
 const ApiError = require('../../utils/ApiError');
+const { assertUuid } = require('../../utils/db');
+const { formatPublicProfile } = require('../auth/profile');
 
+const MAX_LIMIT = 100;
 
+/** Strip characters that carry meaning inside PostgREST filter strings / LIKE patterns. */
+function sanitizeTerm(term) {
+    return String(term || '').replace(/[%_,()*\\"']/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 60);
+}
 
 class CommunityService {
-    async getMembers(filters = {}) {
-        const { role, search, college, company, sort } = filters;
-        console.log('Community API Query Filters:', { role, search, college, company, sort });
+    get db() {
+        return getAdminClient();
+    }
 
-        let profiles = [];
+    async getMembers(viewerId, filters = {}) {
+        const { role, search, college, company, specialization, sort } = filters;
+        const limit = Math.min(Math.max(parseInt(filters.limit, 10) || 50, 1), MAX_LIMIT);
 
-        try {
-            let query = supabase.from('profiles').select('*');
+        let query = this.db.from(TABLES.profiles).select(cols('profiles')).neq('id', viewerId);
 
-            if (role && role.toLowerCase() !== 'all') {
-                query = query.ilike('role', role);
-            }
-            if (college && college.trim()) {
-                query = query.ilike('college', `%${college.trim()}%`);
-            }
-            if (company && company.trim()) {
-                query = query.ilike('company', `%${company.trim()}%`);
-            }
-
-            const { data, error } = await query;
-
-            if (!error && data && data.length > 0) {
-                profiles = data;
-            }
-        } catch (err) {
-            console.error('Community Supabase query error:', err.message);
+        if (role && String(role).toLowerCase() !== 'all') {
+            const canonical = normalizeRole(role);
+            if (!canonical) throw new ApiError(400, 'Invalid role filter');
+            query = query.ilike('role', canonical);
         }
 
-        // Include any dynamically registered profiles from memory map
-        const authService = require('../auth/service');
-        const memoryList = authService.getAllMemoryProfiles ? authService.getAllMemoryProfiles() : [];
-        for (const mp of memoryList) {
-            if (!profiles.some(p => p.id === mp.id)) {
-                profiles.push(mp);
-            }
+        const collegeTerm = sanitizeTerm(college);
+        const companyTerm = sanitizeTerm(company);
+        const specializationTerm = sanitizeTerm(specialization);
+        if (collegeTerm) query = query.ilike('college', `%${collegeTerm}%`);
+        if (companyTerm) query = query.ilike('company', `%${companyTerm}%`);
+        if (specializationTerm) query = query.ilike('specialization', `%${specializationTerm}%`);
+
+        const term = sanitizeTerm(search);
+        if (term) {
+            query = query.or(`username.ilike.%${term}%,full_name.ilike.%${term}%,specialization.ilike.%${term}%,company.ilike.%${term}%,college.ilike.%${term}%`);
         }
 
-        // Apply in-memory search filtering safely
-        if (search && search.trim()) {
-            const term = search.trim().toLowerCase();
-            profiles = profiles.filter(p =>
-                (p.username || '').toLowerCase().includes(term) ||
-                (p.full_name || p.name || '').toLowerCase().includes(term) ||
-                (p.bio || '').toLowerCase().includes(term) ||
-                (Array.isArray(p.skills) ? p.skills.join(' ') : (p.skills || '')).toLowerCase().includes(term) ||
-                (p.college || '').toLowerCase().includes(term) ||
-                (p.specialization || '').toLowerCase().includes(term) ||
-                (p.company || '').toLowerCase().includes(term)
-            );
-        }
+        query = sort === 'alphabetical'
+            ? query.order('full_name', { ascending: true })
+            : query.order('created_at', { ascending: false });
 
-        if (role && role.toLowerCase() !== 'all') {
-            profiles = profiles.filter(p => (p.role || '').toLowerCase() === role.toLowerCase());
-        }
+        const rows = unwrap(await query.limit(limit), 'Load community members') || [];
+        const ids = rows.map((r) => r.id);
 
-        let members = profiles.map(p => this.formatProfile(p));
+        const followState = await this.loadFollowState(viewerId, ids);
+        const members = rows.map((row) => ({
+            ...formatPublicProfile(row),
+            followers_count: followState.counts.get(row.id) || 0,
+            is_following: followState.following.has(row.id)
+        }));
 
-        if (sort === 'alphabetical') {
-            members.sort((a, b) => a.full_name.localeCompare(b.full_name));
-        } else if (sort === 'followers') {
-            members.sort((a, b) => b.followers_count - a.followers_count);
-        } else {
-            members.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
-        }
-
+        if (sort === 'followers') members.sort((a, b) => b.followers_count - a.followers_count);
         return members;
     }
 
-    formatProfile(p) {
-        let skillsArray = [];
-        if (Array.isArray(p.skills)) {
-            skillsArray = p.skills;
-        } else if (typeof p.skills === 'string') {
-            skillsArray = p.skills.split(',').map(s => s.trim()).filter(Boolean);
-        }
+    async getMember(viewerId, memberId) {
+        assertUuid(memberId, 'user id');
+        const rows = unwrap(
+            await this.db.from(TABLES.profiles).select(cols('profiles')).eq('id', memberId).limit(1),
+            'Load member'
+        );
+        if (!rows || rows.length === 0) throw new ApiError(404, 'User not found');
 
-        let availability = 'Looking for Team';
-        if (p.role?.toLowerCase() === 'mentor') availability = 'Looking for Mentees';
-        if (p.role?.toLowerCase() === 'sponsor') availability = 'Looking for Funding';
-        if (p.availability) availability = p.availability;
-
+        const followers = unwrap(
+            await this.db.from(TABLES.follows).select('follower_id').eq('following_id', memberId), 'Load follower count'
+        ) || [];
+        const following = unwrap(
+            await this.db.from(TABLES.follows).select('following_id').eq('follower_id', memberId), 'Load following count'
+        ) || [];
         return {
-            id: p.id,
-            username: p.username || '',
-            full_name: p.full_name || p.name || 'Community Member',
-            avatar_url: p.avatar_url || p.profile_picture || null,
-            role: p.role || 'innovator',
-            college: p.college || '',
-            specialization: p.specialization || '',
-            company: p.company || '',
-            bio: p.bio || '',
-            skills: skillsArray,
-            followers_count: p.followers_count || 0,
-            availability,
-            is_verified: true,
-            created_at: p.created_at || new Date().toISOString()
+            ...formatPublicProfile(rows[0]),
+            followers_count: followers.length,
+            following_count: following.length,
+            is_following: followers.some((f) => f.follower_id === viewerId)
         };
+    }
+
+    /** Follower counts and the viewer's own follow relationships for the returned members. */
+    async loadFollowState(viewerId, ids) {
+        const counts = new Map();
+        const following = new Set();
+        if (ids.length === 0) return { counts, following };
+
+        const followerRows = unwrap(
+            await this.db.from(TABLES.follows).select('follower_id, following_id').in('following_id', ids),
+            'Load follower counts'
+        ) || [];
+        followerRows.forEach((row) => {
+            counts.set(row.following_id, (counts.get(row.following_id) || 0) + 1);
+            if (row.follower_id === viewerId) following.add(row.following_id);
+        });
+        return { counts, following };
     }
 }
 

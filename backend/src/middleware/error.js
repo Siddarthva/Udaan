@@ -1,34 +1,20 @@
 const env = require('../config/env');
 
-const errorHandler = (err, req, res, next) => {
-    const statusCode = err.statusCode || (err.status ? err.status : 500);
-    const timestamp = new Date().toISOString();
+function errorHandler(err, req, res, next) { // eslint-disable-line no-unused-vars
+    // express.json() reports malformed bodies as errors carrying status 400.
+    const statusCode = err.name === 'MulterError' ? 400 : (err.statusCode || err.status || 500);
 
-    console.error(`\n=================== [API ERROR LOG] ===================`);
-    console.error(`[${timestamp}] ${req.method} ${req.originalUrl} -> Status: ${statusCode}`);
-    if (req.user) {
-        console.error(`[USER]: ${req.user.id} (${req.user.email || req.user.username || 'authenticated'})`);
-    }
-    if (req.body && Object.keys(req.body).length > 0) {
-        const safeBody = { ...req.body };
-        if (safeBody.password) safeBody.password = '***REDACTED***';
-        console.error(`[BODY]:`, JSON.stringify(safeBody));
-    }
-    console.error(`[MESSAGE]: ${err.message}`);
-    if (err.stack) {
-        console.error(`[STACK TRACE]:\n${err.stack}`);
-    }
-    console.error(`========================================================\n`);
+    console.error(`[API ERROR] ${new Date().toISOString()} ${req.method} ${req.originalUrl} -> ${statusCode}${req.user ? ` user=${req.user.id}` : ''}`);
+    console.error(`[API ERROR] ${err.message}`);
+    if (statusCode >= 500 && err.stack) console.error(err.stack);
 
-    const message = env.NODE_ENV === 'production' && statusCode === 500
-        ? 'Internal Server Error'
-        : err.message;
+    const message = env.isProduction && statusCode >= 500 ? 'Internal Server Error' : err.message;
+    const body = { error: message };
+    if (Array.isArray(err.errors) && err.errors.length > 0) body.errors = err.errors;
+    if (!env.isProduction && statusCode >= 500 && err.stack) body.stack = err.stack;
 
-    res.status(statusCode).json({
-        error: message,
-        ...(env.NODE_ENV !== 'production' && err.stack ? { stack: err.stack } : {})
-    });
-};
+    res.status(statusCode).json(body);
+}
 
 const asyncHandler = (fn) => (req, res, next) => {
     Promise.resolve(fn(req, res, next)).catch(next);

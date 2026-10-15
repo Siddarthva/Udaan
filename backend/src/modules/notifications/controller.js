@@ -2,8 +2,8 @@ const notificationsService = require('./service');
 
 class NotificationsController {
     async getNotifications(req, res) {
-        const notifications = await notificationsService.getNotifications(req.user.id);
-        res.status(200).json({ notifications });
+        const { notifications, unread_count } = await notificationsService.getNotifications(req.user.id);
+        res.status(200).json({ notifications, unread_count });
     }
 
     async markSingleAsRead(req, res) {

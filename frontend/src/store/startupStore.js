@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import { startupApi } from '../api/api';
+import { errorMessage } from '../api/axios';
 
-export const useStartupStore = create((set, get) => ({
+export const useStartupStore = create((set) => ({
     startups: [],
     currentStartup: null,
     isLoading: false,
@@ -13,7 +14,7 @@ export const useStartupStore = create((set, get) => ({
             const startups = await startupApi.fetchAll(filters);
             set({ startups, isLoading: false });
         } catch (err) {
-            set({ error: err.message, isLoading: false });
+            set({ error: errorMessage(err), isLoading: false });
         }
     },
 
@@ -24,7 +25,7 @@ export const useStartupStore = create((set, get) => ({
             set({ currentStartup, isLoading: false });
             return currentStartup;
         } catch (err) {
-            set({ error: err.message, isLoading: false });
+            set({ error: errorMessage(err), isLoading: false });
             throw err;
         }
     },
@@ -39,7 +40,7 @@ export const useStartupStore = create((set, get) => ({
             }));
             return startup;
         } catch (err) {
-            set({ error: err.message, isLoading: false });
+            set({ error: errorMessage(err), isLoading: false });
             throw err;
         }
     },
@@ -55,44 +56,32 @@ export const useStartupStore = create((set, get) => ({
             }));
             return updated;
         } catch (err) {
-            set({ error: err.message, isLoading: false });
+            set({ error: errorMessage(err), isLoading: false });
             throw err;
         }
     },
 
     addMember: async (startupId, memberData) => {
-        try {
-            const member = await startupApi.addMember(startupId, memberData);
-            set((state) => {
-                if (state.currentStartup?.id === startupId) {
-                    const members = [...(state.currentStartup.members || []), member];
-                    return {
-                        currentStartup: { ...state.currentStartup, members }
-                    };
-                }
-                return {};
-            });
-            return member;
-        } catch (err) {
-            throw err;
-        }
+        const member = await startupApi.addMember(startupId, memberData);
+        set((state) => {
+            if (state.currentStartup?.id === startupId) {
+                const members = [...(state.currentStartup.members || []), member];
+                return { currentStartup: { ...state.currentStartup, members } };
+            }
+            return {};
+        });
+        return member;
     },
 
     removeMember: async (startupId, memberId) => {
-        try {
-            await startupApi.removeMember(startupId, memberId);
-            set((state) => {
-                if (state.currentStartup?.id === startupId) {
-                    const members = (state.currentStartup.members || []).filter(m => m.id !== memberId);
-                    return {
-                        currentStartup: { ...state.currentStartup, members }
-                    };
-                }
-                return {};
-            });
-        } catch (err) {
-            throw err;
-        }
+        await startupApi.removeMember(startupId, memberId);
+        set((state) => {
+            if (state.currentStartup?.id === startupId) {
+                const members = (state.currentStartup.members || []).filter(m => m.id !== memberId);
+                return { currentStartup: { ...state.currentStartup, members } };
+            }
+            return {};
+        });
     },
 
     uploadPitchDeck: async (startupId, file) => {
@@ -107,7 +96,7 @@ export const useStartupStore = create((set, get) => ({
             }));
             return updated;
         } catch (err) {
-            set({ error: err.message, isLoading: false });
+            set({ error: errorMessage(err), isLoading: false });
             throw err;
         }
     }

@@ -2,8 +2,12 @@ import api from "./axios";
 
 // Authentication API
 export const authApi = {
-    login: async (email, password) => {
-        const response = await api.post("/auth/login", { email, password });
+    login: async (loginInput, password) => {
+        const response = await api.post("/auth/login", { loginInput, password });
+        return response.data;
+    },
+    refresh: async () => {
+        const response = await api.post("/auth/refresh");
         return response.data;
     },
     register: async (userData) => {
@@ -41,6 +45,10 @@ export const communityApi = {
     fetchMembers: async (filters = {}) => {
         const response = await api.get("/community", { params: filters });
         return response.data.members;
+    },
+    fetchMember: async (id) => {
+        const response = await api.get("/community/" + encodeURIComponent(id));
+        return response.data.member;
     },
     searchMembers: async (query) => {
         const response = await api.get("/community/search", { params: { q: query } });
@@ -161,8 +169,8 @@ export const investorApi = {
         const response = await api.get("/startups/relations/saved");
         return response.data.saved;
     },
-    expressInterest: async (startupId, notes) => {
-        const response = await api.post(`/startups/${startupId}/express-interest`, { notes });
+    expressInterest: async (startupId, message) => {
+        const response = await api.post(`/startups/${startupId}/express-interest`, { message });
         return response.data.interest;
     },
     fetchInterests: async () => {
@@ -181,9 +189,9 @@ export const mentorApi = {
         const response = await api.get("/startups/relations/mentor-requests");
         return response.data.requests;
     },
-    updateRequestStatus: async (requestId, payload) => {
-        const response = await api.patch(`/messages/request/${requestId}`, typeof payload === 'string' ? { status: payload } : payload);
-        return response.data;
+    updateRequestStatus: async (requestId, status) => {
+        const response = await api.patch(`/startups/relations/mentor-requests/${requestId}`, { status });
+        return response.data.request;
     }
 };
 
@@ -195,14 +203,6 @@ export const followApi = {
     },
     unfollowUser: async (userId) => {
         const response = await api.delete(`/follow/user/${userId}`);
-        return response.data;
-    },
-    followStartup: async (startupId) => {
-        const response = await api.post(`/follow/startup/${startupId}`);
-        return response.data;
-    },
-    unfollowStartup: async (startupId) => {
-        const response = await api.delete(`/follow/startup/${startupId}`);
         return response.data;
     },
     fetchFollowers: async () => {
@@ -219,7 +219,7 @@ export const followApi = {
 export const notificationsApi = {
     fetchAll: async () => {
         const response = await api.get("/notifications");
-        return response.data.notifications;
+        return response.data;
     },
     markRead: async () => {
         const response = await api.post("/notifications/read");

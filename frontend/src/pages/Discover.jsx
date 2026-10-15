@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Search, Bookmark, BookmarkCheck, Mail, Heart, ExternalLink, Plus, Check, DollarSign } from "lucide-react";
+import { Search, Bookmark, BookmarkCheck, Mail, Heart, ExternalLink, DollarSign } from "lucide-react";
 import Button from "@/components/Button";
 import Card from "@/components/Card";
 import Input from "@/components/Input";
@@ -10,18 +10,16 @@ import { useAuth } from "@/hooks/useAuth";
 import { useStartup } from "@/hooks/useStartup";
 import { useInvestor } from "@/hooks/useInvestor";
 import { useMentor } from "@/hooks/useMentor";
-import { useFollowStartupMutation, useFollowingQuery } from "@/api/hooks";
+import { errorMessage } from "@/api/axios";
+import { formatCurrency } from "@/utils/helpers";
 import { DOMAINS, STAGES } from "@/utils/constants";
 import toast from "react-hot-toast";
 
 export default function Discover() {
     const { user } = useAuth();
-    const { startups, fetchStartups } = useStartup();
+    const { startups, error: startupsError, fetchStartups } = useStartup();
     const { watchlist, fetchWatchlist, toggleSaveStartup, expressInterest } = useInvestor();
     const { sendMentorshipRequest } = useMentor();
-    
-    const { data: following = { users: [], startups: [] } } = useFollowingQuery();
-    const followStartupMutation = useFollowStartupMutation();
 
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
@@ -39,16 +37,11 @@ export default function Discover() {
 
     useEffect(() => {
         const load = async () => {
-            try {
-                await fetchStartups();
-                if (user?.role === "Sponsor") {
-                    await fetchWatchlist();
-                }
-            } catch (err) {
-                console.error(err);
-            } finally {
-                setLoading(false);
+            await fetchStartups();
+            if (user?.role === "Sponsor") {
+                await fetchWatchlist();
             }
+            setLoading(false);
         };
         if (user) load();
     }, [user, fetchStartups, fetchWatchlist]);
@@ -56,23 +49,13 @@ export default function Discover() {
     if (loading) return <Loader fullScreen text="Loading Marketplace..." />;
 
     const savedIds = new Set(watchlist.map((w) => w.id));
-    const followedStartupIds = new Set((following.startups || []).map(s => s.id));
-
-    const handleFollowStartup = async (startupId) => {
-        try {
-            await followStartupMutation.mutateAsync(startupId);
-            toast.success("Following startup updates");
-        } catch (e) {
-            toast.error("Failed to follow startup");
-        }
-    };
 
     const handleToggleBookmark = async (startupId) => {
         try {
             const saved = await toggleSaveStartup(startupId);
             toast.success(saved ? "Added to watchlist" : "Removed from watchlist");
         } catch (e) {
-            toast.error("Failed to update watchlist");
+            toast.error(errorMessage(e, "Failed to update watchlist"));
         }
     };
 
@@ -86,7 +69,7 @@ export default function Discover() {
             setIsInterestModalOpen(false);
             setInterestNotes("");
         } catch (e) {
-            toast.error(e.message || "Failed to submit interest");
+            toast.error(errorMessage(e, "Failed to submit interest"));
         } finally {
             setSubmitting(false);
         }
@@ -102,7 +85,7 @@ export default function Discover() {
             setIsMentorModalOpen(false);
             setMentorMessage("");
         } catch (e) {
-            toast.error(e.message || "Failed to send proposal");
+            toast.error(errorMessage(e, "Failed to send proposal"));
         } finally {
             setSubmitting(false);
         }
@@ -162,8 +145,7 @@ export default function Discover() {
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                     {filteredStartups.map((s) => {
                         const isBookmarked = savedIds.has(s.id);
-                        const isFollowing = followedStartupIds.has(s.id);
-                        return (
+                                        return (
                             <Card key={s.id} className="flex flex-col justify-between space-y-4">
                                 <div className="space-y-3">
                                     <div className="flex justify-between items-start">
@@ -174,15 +156,6 @@ export default function Discover() {
                                             <span className="text-xs font-semibold text-gray-500">{s.stage}</span>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <button
-                                                onClick={() => handleFollowStartup(s.id)}
-                                                className={`px-2 py-1 text-xs font-semibold rounded flex items-center gap-1 transition-colors ${
-                                                    isFollowing ? "bg-indigo-50 text-indigo-700 border border-indigo-200" : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                                                }`}
-                                            >
-                                                {isFollowing ? <Check size={12} /> : <Plus size={12} />}
-                                                {isFollowing ? "Following" : "Follow"}
-                                            </button>
                                             {user?.role === "Sponsor" && (
                                                 <button
                                                     onClick={() => handleToggleBookmark(s.id)}
@@ -209,9 +182,19 @@ export default function Discover() {
 
                                 <div className="space-y-3 pt-3 border-t border-gray-100">
                                     <div className="flex justify-between items-center text-xs font-medium">
-                                        <span className="text-gray-500">Capital Target</span>
-                                        <span className="font-bold text-emerald-600">${Number(s.funding_required || 0).toLocaleString()}</span>
+                                        <span className="text-gray-500">Funding goal</span>
+                                        <span className="font-bold text-gray-900">{formatCurrency(s.funding_required)}</span>
                                     </div>
+                                    <div className="space-y-1">
+                                        <div className="flex justify-between text-[11px] text-gray-500">
+                                            <span>Received {formatCurrency(s.funding_received)}</span>
+                                            <span>{s.funding_progress}%</span>
+                                        </div>
+                                        <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                                            <div className="bg-emerald-500 h-1.5 rounded-full" style={{ width: `${s.funding_progress}%` }} />
+                                        </div>
+                                    </div>
+                                    {s.owner_name && <p className="text-[11px] text-gray-500">Founder: <strong className="text-gray-700">{s.owner_name}</strong></p>}
 
                                     {s.pitch_deck_url && (
                                         <a
@@ -225,13 +208,15 @@ export default function Discover() {
                                     )}
 
                                     <div className="flex gap-2">
-                                        <Button
-                                            size="sm"
-                                            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
-                                            onClick={() => { setSelectedStartup(s); setIsInvestmentModalOpen(true); }}
-                                        >
-                                            <DollarSign size={14} className="mr-1" /> Invest Now
-                                        </Button>
+                                        {user?.role === "Sponsor" && (
+                                            <Button
+                                                size="sm"
+                                                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+                                                onClick={() => { setSelectedStartup(s); setIsInvestmentModalOpen(true); }}
+                                            >
+                                                <DollarSign size={14} className="mr-1" /> Funding demo
+                                            </Button>
+                                        )}
                                         {user?.role === "Sponsor" && (
                                             <Button
                                                 size="sm"
@@ -239,7 +224,7 @@ export default function Discover() {
                                                 className="w-full"
                                                 onClick={() => { setSelectedStartup(s); setIsInterestModalOpen(true); }}
                                             >
-                                                <Mail size={14} className="mr-1" /> Term Sheet
+                                                <Mail size={14} className="mr-1" /> Express interest
                                             </Button>
                                         )}
                                         {user?.role === "Mentor" && (
@@ -259,9 +244,17 @@ export default function Discover() {
                     })}
                 </div>
             ) : (
-                <Card className="text-center py-12 text-gray-500 text-xs">
-                    No startups matched your search filter criteria.
-                </Card>
+                startupsError ? (
+                    <Card className="text-center py-10 space-y-3 border-red-200">
+                        <p className="text-sm font-semibold text-red-700">Couldn't load startups</p>
+                        <p className="text-xs text-gray-500">{startupsError}</p>
+                        <Button variant="outline" size="sm" onClick={() => fetchStartups()}>Try again</Button>
+                    </Card>
+                ) : (
+                    <Card className="text-center py-12 text-gray-500 text-xs">
+                        {startups.length === 0 ? "No startups have been launched yet." : "No startups matched your search filter criteria."}
+                    </Card>
+                )
             )}
 
             {/* Investment Modal */}
@@ -279,7 +272,7 @@ export default function Discover() {
             >
                 <form onSubmit={handleExpressInterestSubmit} className="space-y-4">
                     <p className="text-xs text-gray-600">
-                        Submit a message to founder <strong>{selectedStartup?.owner_name || "Founder"}</strong> expressing your capital allocation interest.
+                        Send a message to the founder <strong>{selectedStartup?.owner_name || ""}</strong> expressing your interest. This is recorded and the founder is notified.
                     </p>
                     <textarea
                         placeholder="State allocation commitment or request a term sheet meeting..."

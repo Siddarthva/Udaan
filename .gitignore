@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# Environment files (never commit secrets)
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+
+# Build output / logs
+dist/
+build/
+*.log
+
+# Local mock storage artifacts
+backend/mock-storage/
+backend/uploads/
+
+# OS / editor
+.DS_Store
+Thumbs.db

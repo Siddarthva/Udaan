@@ -10,11 +10,11 @@ import {
     Users
 } from "lucide-react";
 
+// UI role labels. The API / database use INNOVATOR | MENTOR | SPONSOR.
 export const ROLES = {
     INNOVATOR: "Innovator",
     MENTOR: "Mentor",
-    SPONSOR: "Sponsor",
-    ADMIN: "Admin"
+    SPONSOR: "Sponsor"
 };
 
 export const ROLE_NAVIGATION = {
@@ -22,6 +22,7 @@ export const ROLE_NAVIGATION = {
         { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
         { to: "/community", icon: Users, label: "Community" },
         { to: "/projects", icon: Briefcase, label: "My Startups" },
+        { to: "/mentors", icon: Users, label: "Mentors" },
         { to: "/messages", icon: MessageSquare, label: "Messages" },
         { to: "/notifications", icon: Bell, label: "Notifications" },
         { to: "/profile", icon: User, label: "Profile" },
@@ -48,22 +49,21 @@ export const ROLE_NAVIGATION = {
     ]
 };
 
-export function mapRoleToClient(dbRole) {
-    const mapping = {
-        founder: ROLES.INNOVATOR,
-        investor: ROLES.SPONSOR,
-        mentor: ROLES.MENTOR,
-        admin: ROLES.ADMIN
-    };
-    return mapping[dbRole?.toLowerCase()] || dbRole || ROLES.INNOVATOR;
+const API_TO_UI = {
+    INNOVATOR: ROLES.INNOVATOR,
+    FOUNDER: ROLES.INNOVATOR,
+    MENTOR: ROLES.MENTOR,
+    SPONSOR: ROLES.SPONSOR,
+    INVESTOR: ROLES.SPONSOR
+};
+
+/** API role (any case, legacy aliases) -> UI label, or null when unknown. */
+export function mapRoleToClient(apiRole) {
+    return API_TO_UI[String(apiRole || "").toUpperCase()] || null;
 }
 
-export function mapRoleToDb(clientRole) {
-    const mapping = {
-        innovator: "founder",
-        sponsor: "investor",
-        mentor: "mentor",
-        admin: "admin"
-    };
-    return mapping[clientRole?.toLowerCase()] || clientRole || "founder";
+/** UI label / any case -> canonical API role. */
+export function mapRoleToApi(role) {
+    const ui = mapRoleToClient(role);
+    return ui ? ui.toUpperCase() : null;
 }

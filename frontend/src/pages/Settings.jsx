@@ -26,6 +26,7 @@ export default function Settings() {
     const [whatsappNumber, setWhatsappNumber] = useState(user?.whatsapp_number || "");
     const [skillsText, setSkillsText] = useState(Array.isArray(user?.skills) ? user.skills.join(", ") : user?.skills || "");
     const [saving, setSaving] = useState(false);
+    const [fieldErrors, setFieldErrors] = useState({});
 
     useEffect(() => {
         if (user) {
@@ -56,19 +57,20 @@ export default function Settings() {
             setBio(generatedBio);
             toast.success("Bio generated with AI!");
         } catch (err) {
-            toast.error("Failed to generate AI bio");
+            toast.error(err?.response?.data?.error || "Failed to generate AI bio");
         }
     };
 
     const handleSaveSettings = async (e) => {
         e.preventDefault();
         setSaving(true);
+        setFieldErrors({});
         try {
             const skillsArr = skillsText.split(",").map(s => s.trim()).filter(Boolean);
             await updateProfile({
                 full_name: fullName,
                 username,
-                role,
+                role: role.toUpperCase(),
                 bio,
                 college,
                 specialization,
@@ -83,6 +85,7 @@ export default function Settings() {
             });
             toast.success("Settings & profile updated successfully!");
         } catch (err) {
+            setFieldErrors(err.fields || {});
             toast.error(err.message || "Failed to update settings.");
         } finally {
             setSaving(false);
@@ -105,12 +108,14 @@ export default function Settings() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <Input
                             label="Full Name"
+                            error={fieldErrors.full_name}
                             value={fullName}
                             onChange={(e) => setFullName(e.target.value)}
                             placeholder="John Doe"
                         />
                         <Input
                             label="Username"
+                            error={fieldErrors.username}
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
                             placeholder="johndoe_dev"
@@ -224,24 +229,28 @@ export default function Settings() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <Input
                             label="LinkedIn Profile URL"
+                            error={fieldErrors.linkedin_url}
                             value={linkedinUrl}
                             onChange={(e) => setLinkedinUrl(e.target.value)}
                             placeholder="https://linkedin.in/in/username"
                         />
                         <Input
                             label="GitHub Profile URL"
+                            error={fieldErrors.github_url}
                             value={githubUrl}
                             onChange={(e) => setGithubUrl(e.target.value)}
                             placeholder="https://github.com/username"
                         />
                         <Input
                             label="Portfolio Website"
+                            error={fieldErrors.portfolio_url}
                             value={portfolioUrl}
                             onChange={(e) => setPortfolioUrl(e.target.value)}
                             placeholder="https://myportfolio.com"
                         />
                         <Input
                             label="WhatsApp Contact Number"
+                            error={fieldErrors.whatsapp_number}
                             value={whatsappNumber}
                             onChange={(e) => setWhatsappNumber(e.target.value)}
                             placeholder="+1 555 123 4567"

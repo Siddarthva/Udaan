@@ -13,7 +13,7 @@ import toast from "react-hot-toast";
 
 const loginSchema = z.object({
     loginInput: z.string().min(1, "Email or username is required"),
-    password: z.string().min(6, "Password must be at least 6 characters"),
+    password: z.string().min(1, "Password is required"),
 });
 
 const signupSchema = z.object({
@@ -23,8 +23,8 @@ const signupSchema = z.object({
         .max(30, "Username must be at most 30 characters")
         .regex(/^[a-zA-Z0-9_-]+$/, "Username can only contain letters, numbers, underscores, and hyphens"),
     email: z.string().min(1, "Email is required").email("Please enter a valid email address"),
-    password: z.string().min(6, "Password must be at least 6 characters"),
-    confirmPassword: z.string().min(6, "Confirm password is required"),
+    password: z.string().min(8, "Password must be at least 8 characters"),
+    confirmPassword: z.string().min(1, "Confirm password is required"),
 }).refine((data) => data.password === data.confirmPassword, {
     message: "Passwords do not match",
     path: ["confirmPassword"],
@@ -37,7 +37,6 @@ export default function Login() {
     const [showPassword, setShowPassword] = useState(false);
 
     // Username availability state
-    const [usernameInput, setUsernameInput] = useState("");
     const [usernameAvailable, setUsernameAvailable] = useState(null); // null | true | false
     const [checkingUsername, setCheckingUsername] = useState(false);
 
@@ -73,7 +72,7 @@ export default function Login() {
             try {
                 const res = await authApi.checkUsername(watchedUsername);
                 setUsernameAvailable(res.available);
-            } catch (e) {
+            } catch {
                 setUsernameAvailable(null);
             } finally {
                 setCheckingUsername(false);
@@ -98,17 +97,22 @@ export default function Login() {
                     setIsSubmitting(false);
                     return;
                 }
-                await signup({
-                    name: values.fullName,
-                    username: values.username,
+                const result = await signup({
+                    full_name: values.fullName,
+                    username: values.username.toLowerCase(),
                     email: values.email,
                     password: values.password,
-                    role
+                    role: role.toUpperCase()
                 });
+                if (result.requiresEmailConfirmation) {
+                    toast.success(result.message || "Account created. Please confirm your email, then log in.", { duration: 6000 });
+                    handleSwitchMode("login");
+                    return;
+                }
                 toast.success(`Welcome, ${values.fullName}! Account created.`);
             } else {
                 await login({
-                    email: values.loginInput, // Can be email or username
+                    loginInput: values.loginInput, // email or username
                     password: values.password
                 });
                 toast.success("Authenticated successfully.");

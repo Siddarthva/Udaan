@@ -2,7 +2,7 @@ const startupService = require('./service');
 
 class StartupController {
     async listStartups(req, res) {
-        const startups = await startupService.listStartups(req.query);
+        const startups = await startupService.listStartups(req.query, req.user.id);
         res.status(200).json({ count: startups.length, startups });
     }
 
@@ -12,7 +12,7 @@ class StartupController {
     }
 
     async getStartupAnalytics(req, res) {
-        const analytics = await startupService.getStartupAnalytics(req.params.id);
+        const analytics = await startupService.getStartupAnalytics(req.user.id, req.params.id);
         res.status(200).json({ analytics });
     }
 
@@ -22,6 +22,7 @@ class StartupController {
     }
 
     async launchStartup(req, res) {
+        // founder_id always comes from the authenticated identity, never from the request body.
         const startup = await startupService.createStartup(req.user.id, req.body);
         res.status(201).json({ message: 'Startup launched successfully', startup });
     }
@@ -31,9 +32,9 @@ class StartupController {
         res.status(200).json({ message: 'Startup updated successfully', startup });
     }
 
-    async investInStartup(req, res) {
-        const result = await startupService.investInStartup(req.user.id, req.params.id, req.body);
-        res.status(201).json({ message: 'Investment transaction processed successfully', transaction: result });
+    async simulateInvestment(req, res) {
+        const transaction = await startupService.simulateInvestment(req.user.id, req.params.id, req.body);
+        res.status(200).json({ message: 'Simulated funding completed (demo only, nothing was charged or saved)', transaction });
     }
 
     async getActivityFeed(req, res) {
@@ -52,17 +53,17 @@ class StartupController {
     }
 
     async expressInterest(req, res) {
-        const interest = await startupService.expressInterest(req.user.id, req.params.id, req.body.notes);
+        const interest = await startupService.expressInterest(req.user.id, req.params.id, req.body.message ?? req.body.notes);
         res.status(201).json({ message: 'Interest expressed successfully', interest });
     }
 
     async getInvestorInterests(req, res) {
-        const interests = await startupService.getInvestorInterests(req.user.id, req.user.role);
+        const interests = await startupService.getInterests(req.user);
         res.status(200).json({ interests });
     }
 
     async saveStartup(req, res) {
-        const result = await startupService.saveStartup(req.user.id, req.params.id);
+        const result = await startupService.toggleSave(req.user.id, req.params.id);
         res.status(200).json({
             message: result.saved ? 'Startup saved to watchlist' : 'Startup removed from watchlist',
             saved: result.saved
@@ -80,18 +81,18 @@ class StartupController {
     }
 
     async getMentorRequests(req, res) {
-        const requests = await startupService.getMentorRequests(req.user.id, req.user.role);
+        const requests = await startupService.getMentorRequests(req.user);
         res.status(200).json({ requests });
     }
 
     async updateMentorRequestStatus(req, res) {
         const request = await startupService.updateMentorRequestStatus(req.user.id, req.params.id, req.body.status);
-        res.status(200).json({ message: `Request status updated to ${req.body.status}`, request });
+        res.status(200).json({ message: `Request ${request.status}`, request });
     }
 
     async createUpdate(req, res) {
-        const updateRecord = await startupService.createStartupUpdate(req.user.id, req.params.id, req.body);
-        res.status(201).json({ message: 'Update posted successfully', update: updateRecord });
+        const update = await startupService.createStartupUpdate(req.user.id, req.params.id, req.body);
+        res.status(201).json({ message: 'Update posted successfully', update });
     }
 
     async deleteUpdate(req, res) {

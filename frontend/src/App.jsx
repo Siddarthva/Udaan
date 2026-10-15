@@ -1,4 +1,7 @@
 import React, { useEffect, lazy, Suspense } from "react";
+import { useStartupStore } from "@/store/startupStore";
+import { useMentorStore } from "@/store/mentorStore";
+import { useInvestorStore } from "@/store/investorStore";
 import { Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "react-hot-toast";
@@ -49,12 +52,27 @@ function AppLayout() {
     );
 }
 
+// Drops every piece of per-user client state when the session ends so the next user never sees stale data.
+function SessionStateReset() {
+    const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+    const isLoading = useAuthStore((state) => state.isLoading);
+    useEffect(() => {
+        if (isLoading || isAuthenticated) return;
+        queryClient.clear();
+        useStartupStore.setState({ startups: [], currentStartup: null, error: null });
+        useMentorStore.setState({ requests: [], error: null });
+        useInvestorStore.setState({ watchlist: [], interests: [], error: null });
+    }, [isAuthenticated, isLoading]);
+    return null;
+}
+
 export default function App() {
-    const { loadUserFromLocalStorage, isLoading } = useAuthStore();
+    const initialize = useAuthStore((state) => state.initialize);
+    const isLoading = useAuthStore((state) => state.isLoading);
 
     useEffect(() => {
-        loadUserFromLocalStorage();
-    }, [loadUserFromLocalStorage]);
+        initialize();
+    }, [initialize]);
 
     if (isLoading) {
         return <Loader fullScreen text="Initializing Workspace..." />;
@@ -63,6 +81,7 @@ export default function App() {
     return (
         <QueryClientProvider client={queryClient}>
             <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
+            <SessionStateReset />
             <Suspense fallback={<Loader fullScreen text="Loading..." />}>
                 <Routes>
                     {/* Public Routes */}
